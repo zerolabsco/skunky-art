@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SkunkyArt | Search</title>
+        <link rel="stylesheet" href="/gui/css/skunky.css">
+    </head>
+    <main>
+        <header>
+            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
+            <form method="get" action="search">
+                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
+                <select name="type">
+                    <option value="all">All</option>
+                    <option value="tag">Tag</option>
+                </select>
+                <button type="submit">Search!</button>
+            </form>
+        </header>
+        {{if (ne .List "")}}
+        {{if (ne .Search.Total 0)}}
+        <h1>Total resuls: {{.Search.Total}}</h1>
+        {{end}}
+        {{.List}}
+        {{.Search.Pages}}
+        {{else}}
+        <p>No results :(</p>
+        {{end}}
+    </main>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SkunkyArt | {{.Post.Deviation.Author.Username}} - {{.Post.Deviation.Title}}</title>
+        <link rel="stylesheet" href="/gui/css/skunky.css">
+    </head>
+    <main>
+        <header>
+            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
+            <form method="get" action="/search">
+                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
+                <select name="type">
+                    <option value="all">All</option>
+                    <option value="tag">Tag</option>
+                </select>
+                <button type="submit">Search!</button>
+            </form>
+        </header>
+        <figure>
+            <img src="/media/{{.Post.Deviation.Author.Username}}?type=a" width="30px">
+            <span><strong><a href="/user/{{.Post.Deviation.Author.Username}}">{{.Post.Deviation.Author.Username}}</a></strong> — {{if (.Post.Deviation.DD)}}
+                <span class="dd" title="Daily Deviation!"><b>{{.Post.Deviation.Title}}</b></span>
+                {{else}}{{.Post.Deviation.Title}}{{end}}
+                 {{if (ne .Post.Deviation.License "none")}}<mark title="License">{{.Post.Deviation.License}}</mark>{{end}} {{if (.Post.Deviation.AI)}}[🤖]{{end}} 
+                 {{if (.Post.Deviation.NSFW)}}[<span class="nsfw">NSFW</span>]{{end}}
+            </span>
+            <br>
+            {{if (ne .Post.IMG "")}}
+            <a href="{{.Post.IMG}}" title="open/download image"><img src="{{.Post.IMG}}" width="50%"></a>
+            <br>
+            {{end}}
+            {{if (ne .Tags "")}}
+            {{.Tags}}<br>
+            {{end}}
+            <span>Published: <strong>{{.StringTime}}</strong>; Views: <strong>{{.Post.Deviation.Stats.Views}}</strong>; Favourites: <strong>{{.Post.Deviation.Stats.Favourites}}</strong>; Downloads: <strong>{{.Post.Deviation.Stats.Downloads}}</strong></span>
+            {{if (ne .Post.Description "")}}
+            {{.Post.Description}}
+            {{end}}
+            {{if (ne .Comments "")}}
+            {{.Comments}}
+            {{end}}
+        </figure>
+    </main>
+</html>
