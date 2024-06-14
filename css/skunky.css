@@ -47,6 +47,11 @@ form input, button, select {
 .msg:hover {
     background-color: #134134;
 }
+.reply {
+    border-radius: 0px 2px 2px 0px;
+    border-left: #258268 solid;
+    margin-left: 40px;
+}
 .dd {
     color: rgb(160, 0, 147);
 }

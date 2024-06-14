@@ -60,6 +60,8 @@ func Router() {
 			skunky.Deviation(url[:slash], url[slash+1:])
 		case "search":
 			skunky.Search()
+		case "dd":
+			skunky.DD()
 		case "media":
 			skunky.Emojitar(url)
 		case "about":

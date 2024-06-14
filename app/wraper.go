@@ -47,7 +47,77 @@ func (s skunkyart) httperr(status int) {
 	wr(s.Writer, msg.String())
 }
 
-func (s skunkyart) DeviationList(devs []devianter.Deviation) string {
+// навигация по страницам
+type dlist struct {
+	Pages int
+	More  bool
+}
+
+// FIXME: на некоротрых артах первая страница может вызывать полное отсутствие панели навигации.
+func (s skunkyart) NavBase(c dlist) string {
+	// TODO: сделать понятнее
+	// навигация по страницам
+	var list strings.Builder
+	list.WriteString("<br>")
+	p := s.Page
+
+	// функция для генерации ссылок
+	prevrev := func(msg string, page int, onpage bool) {
+		if !onpage {
+			list.WriteString(`<a href="?p=`)
+			list.WriteString(strconv.Itoa(page))
+			if s.Type != 0 {
+				list.WriteString("&type=")
+				list.WriteRune(s.Type)
+			}
+			if s.Query != "" {
+				list.WriteString("&q=")
+				list.WriteString(s.Query)
+			}
+			list.WriteString(`">`)
+			list.WriteString(msg)
+			list.WriteString("</a> ")
+		} else {
+			list.WriteString(strconv.Itoa(page))
+			list.WriteString(" ")
+		}
+	}
+
+	// вперёд-назад
+	if p > 1 {
+		prevrev("<= Prev |", p-1, false)
+	} else {
+		p = 1
+	}
+
+	if c.Pages > 0 {
+		// назад
+		for x := p - 6; x < p && x > 0; x++ {
+			prevrev(strconv.Itoa(x), x, false)
+		}
+
+		// вперёд
+		for x := p; x <= p+6; x++ {
+			if x == p {
+				prevrev("", x, true)
+				x++
+			}
+
+			if x > p {
+				prevrev(strconv.Itoa(x), x, false)
+			}
+		}
+	}
+
+	// вперёд-назад
+	if c.More {
+		prevrev("| Next =>", p+1, false)
+	}
+
+	return list.String()
+}
+
+func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) string {
 	var list strings.Builder
 	list.WriteString(`<div class="content">`)
 	for _, data := range devs {
@@ -81,6 +151,8 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation) string {
 		list.WriteString("</a></div>")
 	}
 	list.WriteString("</div>")
+	list.WriteString(s.NavBase(content[0]))
+
 	return list.String()
 }
 
@@ -102,7 +174,6 @@ func (s skunkyart) Deviation(author, postname string) {
 		// время публикации
 		post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
 
-		println(post.Post.Description)
 		// хештэги
 		for _, x := range post.Post.Deviation.Extended.Tags {
 			var tag strings.Builder
@@ -115,34 +186,52 @@ func (s skunkyart) Deviation(author, postname string) {
 			post.Tags += tag.String()
 		}
 
+		// FIXME: первый комментарий не отображается.
 		// генерация комментов
 		var cmmts strings.Builder
-		var replied map[int]string
-		_ = replied
+		replied := make(map[int]string)
 		c := devianter.CommentsFunc(id, post.Post.Comments.Cursor, s.Page, 1)
 
 		cmmts.WriteString("<details><summary>Comments: <b>")
 		cmmts.WriteString(strconv.Itoa(c.Total))
 		cmmts.WriteString("</b></summary>")
 		for _, x := range c.Thread {
-			cmmts.WriteString(`<div class="msg"><p id="`)
+			replied[x.ID] = x.User.Username
+			cmmts.WriteString(`<div class="msg`)
+			if x.Parent > 0 {
+				cmmts.WriteString(` reply`)
+			}
+			cmmts.WriteString(`"><p id="`)
 			cmmts.WriteString(strconv.Itoa(x.ID))
 			cmmts.WriteString(`"><img src="/media/`)
 			cmmts.WriteString(x.User.Username)
 			cmmts.WriteString(`?type=a" width="30px" height="30px"><a href="/user/`)
 			cmmts.WriteString(x.User.Username)
 			cmmts.WriteString(`"><b`)
+			cmmts.WriteString(` class="`)
 			if x.User.Banned {
-				cmmts.WriteString(` class="banned"`)
+				cmmts.WriteString(`banned`)
 			}
 			if x.Author {
-				cmmts.WriteString(` class="author"`)
+				cmmts.WriteString(`author`)
 			}
-			cmmts.WriteString(">")
+			cmmts.WriteString(`">`)
 			cmmts.WriteString(x.User.Username)
 			cmmts.WriteString("</b></a> ")
+			if x.Parent > 0 {
+				cmmts.WriteString(` In reply to <a href="#`)
+				cmmts.WriteString(strconv.Itoa(x.Parent))
+				cmmts.WriteString(`">`)
+				if replied[x.Parent] == "" {
+					cmmts.WriteString("???")
+				} else {
+					cmmts.WriteString(replied[x.Parent])
+				}
+				cmmts.WriteString("</a>")
+			}
+			cmmts.WriteString(" [")
 			cmmts.WriteString(x.Posted.UTC().String())
-			cmmts.WriteString("<p>")
+			cmmts.WriteString("]<p>")
 			cmmts.WriteString(x.Comment)
 			cmmts.WriteString("<p>👍: ")
 			cmmts.WriteString(strconv.Itoa(x.Likes))
@@ -150,13 +239,26 @@ func (s skunkyart) Deviation(author, postname string) {
 			cmmts.WriteString(strconv.Itoa(x.Replies))
 			cmmts.WriteString("</p></div>\n")
 		}
+		cmmts.WriteString(s.NavBase(dlist{
+			Pages: 0,
+			More:  c.HasMore,
+		}))
 		cmmts.WriteString("</details>")
+
 		post.Comments = cmmts.String()
 
 		s.exe("html/deviantion.htm", &post)
 	} else {
 		s.httperr(400)
 	}
+}
+
+func (s skunkyart) DD() {
+	dd := devianter.DailyDeviationsFunc(s.Page)
+	s.exe("html/list.htm", s.DeviationList(dd.Deviations, dlist{
+		Pages: 0,
+		More:  dd.HasMore,
+	}))
 }
 
 func (s skunkyart) Search() {
@@ -170,7 +272,10 @@ func (s skunkyart) Search() {
 		var e error
 		srch.Search, e = devianter.SearchFunc(s.Query, s.Page, s.Type)
 		err(e)
-		srch.List = s.DeviationList(srch.Search.Results)
+		srch.List = s.DeviationList(srch.Search.Results, dlist{
+			Pages: srch.Search.Pages,
+			More:  srch.Search.HasMore,
+		})
 
 		s.exe("html/search.htm", &srch)
 	} else {
