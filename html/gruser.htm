@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SkunkyArt | {{.GR.Owner.Username}}</title>
+        <link rel="stylesheet" href="/gui/css/skunky.css">
+    </head>
+    <main>
+        <header>
+            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
+            <form method="get" action="/search">
+                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
+                <select name="type">
+                    <option value="all">All</option>
+                    <option value="tag">Tag</option>
+                </select>
+                <button type="submit">Search!</button>
+            </form>
+        </header>
+        <img src="/media/{{.GR.Owner.Username}}?type=a" width="30px" height="30px"> <b>{{.GR.Owner.Username}}</b>
+        {{if (eq .About.A.Gender "male")}}
+        ♂️
+        {{end}}
+        {{if (eq .About.A.Gender "female")}}
+        ♀️
+        {{end}}
+        [<span title="UID">{{.GR.Gruser.ID}}</span>]
+        [<span title="Registration date">{{.CreationDate}}</span>]
+        <i title="User's Tag">"{{.GR.Extra.Tag}}"</i>
+
+        <h3 id="stats"><a href="#stats">#</a> Statistics</h3>
+        <p>Favourites: <b>{{.GR.Extra.Stats.Favourites}}</b>; Deviations: <b>{{.GR.Extra.Stats.Deviations}}</b>; Watchers: <b>{{.GR.Extra.Stats.Watchers}}</b>
+        <p>Watching: <b>{{.GR.Extra.Stats.Watching}}</b>; Pageviews: <b>{{.GR.Extra.Stats.Pageviews}}</b>; Comments Made: <b>{{.GR.Extra.Stats.CommentsMade}}</b>; Friends: <b>{{.GR.Extra.Stats.Friends}}</b></p>
+    
+        <h3 id="interests"><a href="#interests">#</a> Interests</h3>
+        {{.About.Interests}}
+
+        <h3 id="social"><a href="#social">#</a> Social Links</h3>
+        {{.About.Social}}
+
+        <h3 id="about"><a href="#about">#</a> About me</h3>
+        {{.About.DescriptionFormatted}}
+    </main>
+</html>

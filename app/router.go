@@ -62,6 +62,9 @@ func Router() {
 			skunky.Search()
 		case "dd":
 			skunky.DD()
+		case "group":
+			skunky.GRUser()
+
 		case "media":
 			skunky.Emojitar(url)
 		case "about":

@@ -8,7 +8,7 @@ a {
     color: cadetblue;
 }
 a:hover {
-    color: red;
+    color: yellow;
     transition: 400ms;
 }
 header h1 {

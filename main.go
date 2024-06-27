@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	devianter.UpdateCSRF()
+	err := devianter.UpdateCSRF()
+	if err != nil {
+		println(err.Error())
+	}
 
 	app.Router()
 }

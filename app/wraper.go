@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"git.macaw.me/skunky/devianter"
 )
@@ -117,6 +118,68 @@ func (s skunkyart) NavBase(c dlist) string {
 	return list.String()
 }
 
+func (s skunkyart) GRUser() {
+	var group struct {
+		GR           devianter.GRuser
+		CreationDate string
+
+		About struct {
+			A devianter.About
+
+			DescriptionFormatted string
+			Interests            string
+			Social               string
+			BG                   devianter.Deviation
+		}
+	}
+
+	if len(s.Query) < 1 {
+		s.httperr(400)
+		return
+	}
+
+	var g devianter.Group
+	g.Name = s.Query
+	group.GR = g.GroupFunc()
+
+	if g := group.GR; !g.Owner.Group {
+		for _, x := range g.Gruser.Page.Modules {
+			var about = group.About.A
+			if x.ModuleData.About.RegDate != 0 {
+				about = x.ModuleData.About
+			}
+			group.About.DescriptionFormatted = ParseDescription(about.Description)
+
+			for _, val := range x.ModuleData.About.Interests {
+				var interest strings.Builder
+				interest.WriteString(val.Label)
+				interest.WriteString(": <b>")
+				interest.WriteString(val.Value)
+				interest.WriteString("</b><br>")
+				group.About.Interests += interest.String()
+			}
+
+			for _, val := range x.ModuleData.About.SocialLinks {
+				var social strings.Builder
+				social.WriteString(`<a target="_blank" href="`)
+				social.WriteString(val.Value)
+				social.WriteString(`">`)
+				social.WriteString(val.Value)
+				social.WriteString("</a><br>")
+				group.About.Social += social.String()
+			}
+
+			if rd := x.ModuleData.About.RegDate; rd != 0 {
+				group.CreationDate = time.Unix(time.Now().Unix()-rd, 0).UTC().String()
+			}
+		}
+	} else {
+
+	}
+
+	s.exe("html/gruser.htm", &group)
+}
+
 func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) string {
 	var list strings.Builder
 	list.WriteString(`<div class="content">`)
@@ -171,6 +234,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		id := re[len(re)-1]
 		post.Post = devianter.DeviationFunc(id, author)
 
+		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
 		// время публикации
 		post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
 
@@ -218,6 +282,7 @@ func (s skunkyart) Deviation(author, postname string) {
 			cmmts.WriteString(`">`)
 			cmmts.WriteString(x.User.Username)
 			cmmts.WriteString("</b></a> ")
+
 			if x.Parent > 0 {
 				cmmts.WriteString(` In reply to <a href="#`)
 				cmmts.WriteString(strconv.Itoa(x.Parent))
@@ -232,6 +297,7 @@ func (s skunkyart) Deviation(author, postname string) {
 			cmmts.WriteString(" [")
 			cmmts.WriteString(x.Posted.UTC().String())
 			cmmts.WriteString("]<p>")
+
 			cmmts.WriteString(x.Comment)
 			cmmts.WriteString("<p>👍: ")
 			cmmts.WriteString(strconv.Itoa(x.Likes))
@@ -263,7 +329,8 @@ func (s skunkyart) DD() {
 
 func (s skunkyart) Search() {
 	// тут всё и так понятно
-	if s.Type == 'a' || s.Type == 't' || s.Type == 'g' {
+	switch s.Type {
+	case 'a', 't', 'g':
 		var srch struct {
 			Search devianter.Search
 			List   string
@@ -278,7 +345,7 @@ func (s skunkyart) Search() {
 		})
 
 		s.exe("html/search.htm", &srch)
-	} else {
+	default:
 		s.httperr(400)
 	}
 }

@@ -34,7 +34,9 @@
             {{end}}
             <span>Published: <strong>{{.StringTime}}</strong>; Views: <strong>{{.Post.Deviation.Stats.Views}}</strong>; Favourites: <strong>{{.Post.Deviation.Stats.Favourites}}</strong>; Downloads: <strong>{{.Post.Deviation.Stats.Downloads}}</strong></span>
             {{if (ne .Post.Description "")}}
+            <figcaption>
             {{.Post.Description}}
+            </figcaption>
             {{end}}
             {{if (ne .Comments "")}}
             {{.Comments}}
