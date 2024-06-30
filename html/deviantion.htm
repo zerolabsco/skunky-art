@@ -18,7 +18,7 @@
         </header>
         <figure>
             <img src="/media/{{.Post.Deviation.Author.Username}}?type=a" width="30px">
-            <span><strong><a href="/user/{{.Post.Deviation.Author.Username}}">{{.Post.Deviation.Author.Username}}</a></strong> — {{if (.Post.Deviation.DD)}}
+            <span><strong><a href="/group_user?type=about&q={{.Post.Deviation.Author.Username}}">{{.Post.Deviation.Author.Username}}</a></strong> — {{if (.Post.Deviation.DD)}}
                 <span class="dd" title="Daily Deviation!"><b>{{.Post.Deviation.Title}}</b></span>
                 {{else}}{{.Post.Deviation.Title}}{{end}}
                  {{if (ne .Post.Deviation.License "none")}}<mark title="License">{{.Post.Deviation.License}}</mark>{{end}} {{if (.Post.Deviation.AI)}}[🤖]{{end}} 

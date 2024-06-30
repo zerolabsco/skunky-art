@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>SkunkyArt | Search</title>
+        <title>SkunkyArt | Search "{{.Query}}"</title>
         <link rel="stylesheet" href="/gui/css/skunky.css">
     </head>
     <main>
@@ -16,11 +16,11 @@
                 <button type="submit">Search!</button>
             </form>
         </header>
-        {{if (ne .List "")}}
-        {{if (ne .Search.Total 0)}}
-        <h1>Total resuls: {{.Search.Total}}</h1>
+        {{if ne .Templates.Search.List ""}}
+        {{if ne .Templates.Search.Content.Total 0}}
+        <h1>Total resuls: {{.Templates.Search.Content.Total}}</h1>
         {{end}}
-        {{.List}}
+        {{.Templates.Search.List}}
         {{else}}
         <p>No results :(</p>
         {{end}}

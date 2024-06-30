@@ -52,7 +52,7 @@ func Router() {
 		// пути
 		switch e {
 		default:
-			skunky.httperr(404)
+			skunky.ReturnHTTPError(404)
 		case "/", "":
 			open_n_send("html/index.htm")
 		case "post":
@@ -62,7 +62,7 @@ func Router() {
 			skunky.Search()
 		case "dd":
 			skunky.DD()
-		case "group":
+		case "group_user":
 			skunky.GRUser()
 
 		case "media":

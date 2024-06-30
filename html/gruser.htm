@@ -1,43 +1,74 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>SkunkyArt | {{.GR.Owner.Username}}</title>
+        <title>SkunkyArt | 
+        {{if eq .Type 'a'}}
+        {{.Templates.GroupUser.GR.Owner.Username}}
+        {{else}}
+        gallery of {{.Templates.GroupUser.GR.Owner.Username}}
+        {{end}}
+        </title>
         <link rel="stylesheet" href="/gui/css/skunky.css">
     </head>
     <main>
         <header>
-            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
-            <form method="get" action="/search">
-                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
+            <h1><a href="/">HOME</a> | <a href="/dd">DD</a>
+            | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery</a></h1>{{else}}about">About</a></h1>
+            {{end}}
+             <form method="get" action="/search">
+                <input type="gallery" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
+                <input type="hidden" name="usr" value="{{.Templates.GroupUser.GR.Owner.Username}}">
                 <select name="type">
                     <option value="all">All</option>
                     <option value="tag">Tag</option>
+                    <option value="gallery">Gallery</option>
                 </select>
                 <button type="submit">Search!</button>
             </form>
         </header>
-        <img src="/media/{{.GR.Owner.Username}}?type=a" width="30px" height="30px"> <b>{{.GR.Owner.Username}}</b>
-        {{if (eq .About.A.Gender "male")}}
-        ♂️
+        {{if eq .Type 'a'}}
+            {{if ne .Templates.GroupUser.About.BG ""}}
+            <a href="{{.Templates.GroupUser.About.BGMeta.Url}}" class="ubg"><img title="{{if ne .Templates.GroupUser.GR.Owner.Username .Templates.GroupUser.About.BGMeta.Author.Username}}
+            {{.Templates.GroupUser.About.BGMeta.Author.Username}} - {{end}}{{.Templates.GroupUser.About.BGMeta.Title}}" src="{{.Templates.GroupUser.About.BG}}"></a>
+            {{end}}
+
+            <img src="/media/{{.Templates.GroupUser.GR.Owner.Username}}?type=a" width="30px" height="30px"> <b>{{.Templates.GroupUser.GR.Owner.Username}}</b>
+            {{if (eq .Templates.GroupUser.About.A.Gender "male")}}
+            ♂️
+            {{end}}
+            {{if (eq .Templates.GroupUser.About.A.Gender "female")}}
+            ♀️
+            {{end}}
+            [<span title="UID">{{.Templates.GroupUser.GR.Gruser.ID}}</span>]
+            [<span title="Registration date">{{.Templates.GroupUser.CreationDate}}</span>]
+            {{if ne .Templates.GroupUser.GR.Extra.Tag ""}}
+            <i title="User's Tag">"{{.Templates.GroupUser.GR.Extra.Tag}}"</i>{{end}} (<b>{{.Templates.GroupUser.About.A.Country}}</b>)
+
+            <h3 id="stats"><a href="#stats">#</a> Statistics</h3>
+            <p>Favourites: <b>{{.Templates.GroupUser.GR.Extra.Stats.Favourites}}</b>; Deviations: <b>{{.Templates.GroupUser.GR.Extra.Stats.Deviations}}</b>; Watchers: <b>{{.Templates.GroupUser.GR.Extra.Stats.Watchers}}</b>
+            <p>Watching: <b>{{.Templates.GroupUser.GR.Extra.Stats.Watching}}</b>; Pageviews: <b>{{.Templates.GroupUser.GR.Extra.Stats.Pageviews}}</b>; Comments Made: <b>{{.Templates.GroupUser.GR.Extra.Stats.CommentsMade}}</b>; Friends: <b>{{.Templates.GroupUser.GR.Extra.Stats.Friends}}</b></p>
+        
+            {{if ne .Templates.GroupUser.About.Interests ""}}
+            <h3 id="interests"><a href="#interests">#</a> Interests</h3>
+            {{.Templates.GroupUser.About.Interests}}
+            {{end}}
+
+            {{if ne .Templates.GroupUser.About.Social ""}}
+            <h3 id="social"><a href="#social">#</a> Social Links</h3>
+            {{.Templates.GroupUser.About.Social}}
+            {{end}}
+
+            {{if ne .Templates.GroupUser.About.DescriptionFormatted ""}}
+            <h3 id="about"><a href="#about">#</a> About me</h3>
+            {{.Templates.GroupUser.About.DescriptionFormatted}}
+            {{end}}
+            {{if ne .Templates.GroupUser.About.Comments ""}}
+            <br>
+            <h3 id="comments"><a href="#comments">#</a> Comments</h3>
+            {{.Templates.GroupUser.About.Comments}}
+            {{end}}
+        {{else}}
+            {{.Templates.GroupUser.Gallery.List}}
         {{end}}
-        {{if (eq .About.A.Gender "female")}}
-        ♀️
-        {{end}}
-        [<span title="UID">{{.GR.Gruser.ID}}</span>]
-        [<span title="Registration date">{{.CreationDate}}</span>]
-        <i title="User's Tag">"{{.GR.Extra.Tag}}"</i>
-
-        <h3 id="stats"><a href="#stats">#</a> Statistics</h3>
-        <p>Favourites: <b>{{.GR.Extra.Stats.Favourites}}</b>; Deviations: <b>{{.GR.Extra.Stats.Deviations}}</b>; Watchers: <b>{{.GR.Extra.Stats.Watchers}}</b>
-        <p>Watching: <b>{{.GR.Extra.Stats.Watching}}</b>; Pageviews: <b>{{.GR.Extra.Stats.Pageviews}}</b>; Comments Made: <b>{{.GR.Extra.Stats.CommentsMade}}</b>; Friends: <b>{{.GR.Extra.Stats.Friends}}</b></p>
-    
-        <h3 id="interests"><a href="#interests">#</a> Interests</h3>
-        {{.About.Interests}}
-
-        <h3 id="social"><a href="#social">#</a> Social Links</h3>
-        {{.About.Social}}
-
-        <h3 id="about"><a href="#about">#</a> About me</h3>
-        {{.About.DescriptionFormatted}}
     </main>
 </html>

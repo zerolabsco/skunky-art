@@ -83,4 +83,11 @@ form input, button, select {
 .block p {
     word-break: break-all;
 }
-
+.ubg {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.ubg img {
+    width: 20%;
+}
