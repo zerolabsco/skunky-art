@@ -13,22 +13,34 @@ const addr string = "0.0.0.0:3003"
 
 // роутер
 func Router() {
-	// расшифровка эндпоинта из урл
-	endpoint := func(url string) (string, string) {
-		if CFG.Base_uri != "" {
-			url = strings.Replace(url, CFG.Base_uri, "/", 1)
+	parsepath := func(path string) map[int]string {
+		parsedpath := make(map[int]string)
+		for x := 0; true; x++ {
+			slash := strings.Index(path, "/") + 1
+			content := path[:slash]
+			path = path[slash:]
+			if slash == 0 {
+				parsedpath[x] = path
+				break
+			}
+			parsedpath[x] = content[:slash-1]
 		}
+		return parsedpath
+	}
 
-		end := strings.Index(url[1:], "/")
-		if end == -1 {
-			return url[1:], ""
+	next := func(path map[int]string, from int) (out string) {
+		for x, l := from, len(path)-1; x <= l; x++ {
+			out += path[x]
+			if x != l {
+				out += "/"
+			}
 		}
-		return url[1 : end+1], url[end+2:]
+		return
 	}
 
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
-		e, url := endpoint(r.URL.Path)
+		path := parsepath(r.URL.Path)
 		var wr = io.WriteString
 		open_n_send := func(name string) {
 			f, e := os.ReadFile(name)
@@ -50,14 +62,13 @@ func Router() {
 		skunky.Page = p
 
 		// пути
-		switch e {
+		switch path[1] {
 		default:
 			skunky.ReturnHTTPError(404)
-		case "/", "":
+		case "":
 			open_n_send("html/index.htm")
 		case "post":
-			slash := strings.Index(url, "/")
-			skunky.Deviation(url[:slash], url[slash+1:])
+			skunky.Deviation(path[2], path[3])
 		case "search":
 			skunky.Search()
 		case "dd":
@@ -66,12 +77,12 @@ func Router() {
 			skunky.GRUser()
 
 		case "media":
-			skunky.Emojitar(url)
+			skunky.Emojitar(path[2])
 		case "about":
 			open_n_send("html/about.htm")
 		case "gui":
 			w.Header().Add("content-type", "text/css")
-			open_n_send(url)
+			open_n_send(next(path, 2))
 		}
 	}
 

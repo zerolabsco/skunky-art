@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -24,6 +23,8 @@ type skunkyart struct {
 	Templates struct {
 		GroupUser struct {
 			GR           devianter.GRuser
+			Admins       string
+			Group        bool
 			CreationDate string
 
 			About struct {
@@ -37,8 +38,9 @@ type skunkyart struct {
 			}
 
 			Gallery struct {
-				Pages int
-				List  string
+				Folders string
+				Pages   int
+				List    string
 			}
 		}
 		Search struct {
@@ -61,19 +63,22 @@ func (s skunkyart) GRUser() {
 
 	switch s.Type {
 	case 'a':
-		if g := group.GR; !g.Owner.Group {
-			for _, x := range g.Gruser.Page.Modules {
-				switch x.Name {
-				case "about":
-					group.About.A = x.ModuleData.About
-					var about = group.About.A
+		g := group.GR
+		for _, x := range g.Gruser.Page.Modules {
+			switch x.Name {
+			case "about", "group_about":
+				switch g.Owner.Group {
+				case true:
+					var about = &x.ModuleData.GroupAbout
+					group.Group = true
+					group.CreationDate = x.ModuleData.GroupAbout.FoundatedAt.UTC().String()
 					group.About.DescriptionFormatted = ParseDescription(about.Description)
-					group.About.Comments = s.ParseComments(devianter.CommentsFunc(
-						strconv.Itoa(group.GR.Gruser.ID),
-						"",
-						s.Page,
-						4,
-					))
+				case false:
+					group.About.A = x.ModuleData.About
+					var about = &group.About.A
+					group.CreationDate = time.Unix(time.Now().Unix()-x.ModuleData.About.RegDate, 0).UTC().String()
+
+					group.About.DescriptionFormatted = ParseDescription(about.Description)
 
 					for _, val := range x.ModuleData.About.SocialLinks {
 						var social strings.Builder
@@ -93,25 +98,76 @@ func (s skunkyart) GRUser() {
 						interest.WriteString("</b><br>")
 						group.About.Interests += interest.String()
 					}
-
-					if rd := x.ModuleData.About.RegDate; rd != 0 {
-						group.CreationDate = time.Unix(time.Now().Unix()-rd, 0).UTC().String()
-					}
-				case "cover_deviation":
-					group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
-					group.About.BG = devianter.UrlFromMedia(group.About.BGMeta.Media)
 				}
+				group.About.Comments = s.ParseComments(devianter.CommentsFunc(
+					strconv.Itoa(group.GR.Gruser.ID),
+					"",
+					s.Page,
+					4,
+				))
+
+			case "cover_deviation":
+				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
+				group.About.BG = devianter.UrlFromMedia(group.About.BGMeta.Media)
+			case "group_admins":
+				var htm strings.Builder
+				for _, z := range x.ModuleData.GroupAdmins.Results {
+					htm.WriteString(`<p><img src="`)
+					htm.WriteString("/media/")
+					htm.WriteString(z.User.Username)
+					htm.WriteString("?type=a")
+					htm.WriteString(`"><a href="`)
+					htm.WriteString("/group_user?type=about&q=")
+					htm.WriteString(z.User.Username)
+					htm.WriteString(`">`)
+					htm.WriteString(z.User.Username)
+					htm.WriteString(`</a></p>`)
+				}
+				group.Admins += htm.String()
 			}
-		} else {
 
 		}
 	case 'g':
-		gallery := g.Gallery(s.Page)
-		fmt.Println(gallery)
-		for _, x := range gallery.Content.Gruser.Page.Modules {
-			group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, dlist{
-				Pages: x.ModuleData.Folder.Pages,
+		folderid, _ := strconv.Atoi(s.Args.Get("folder"))
+		if s.Page == 0 {
+			s.Page++
+		}
+
+		gallery := g.Gallery(s.Page, folderid)
+		if folderid > 0 {
+			group.Gallery.List = s.DeviationList(gallery.Content.Results, dlist{
+				More: gallery.Content.HasMore,
 			})
+		} else {
+			for _, x := range gallery.Content.Gruser.Page.Modules {
+				if l := len(x.ModuleData.Folders.Results); l != 0 {
+					var folders strings.Builder
+					folders.WriteString(`<h3 class="folders">Folders: `)
+					for n, x := range x.ModuleData.Folders.Results {
+						folders.WriteString(`<a href="?folder=`)
+						folders.WriteString(strconv.Itoa(x.FolderId))
+						folders.WriteString("&q=")
+						folders.WriteString(s.Query)
+						folders.WriteString("&type=")
+						folders.WriteString(string(s.Type))
+						folders.WriteString(`">`)
+						folders.WriteString(x.Name)
+						folders.WriteString(`</a>`)
+						if n+1 < l {
+							folders.WriteString(" | ")
+						}
+					}
+					folders.WriteString("</h3>")
+					group.Gallery.Folders = folders.String()
+				}
+
+				if x.Name == "folder_deviations" {
+					group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, dlist{
+						Pages: x.ModuleData.Folder.Pages,
+						More:  x.ModuleData.Folder.HasMore,
+					})
+				}
+			}
 		}
 	default:
 		s.ReturnHTTPError(400)
@@ -193,7 +249,6 @@ func (s skunkyart) Emojitar(name string) {
 		ae, e := devianter.AEmedia(name, s.Type)
 		if e != nil {
 			s.ReturnHTTPError(404)
-			println(e.Error())
 		}
 		wr(s.Writer, ae)
 	} else {

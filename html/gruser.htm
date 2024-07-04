@@ -19,12 +19,12 @@
                 <input type="gallery" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <input type="hidden" name="usr" value="{{.Templates.GroupUser.GR.Owner.Username}}">
                 <select name="type">
+                    <option value="gallery">Gallery</option>
                     <option value="all">All</option>
                     <option value="tag">Tag</option>
-                    <option value="gallery">Gallery</option>
                 </select>
                 <button type="submit">Search!</button>
-            </form>
+            </form> <h1>| {{.Templates.GroupUser.GR.Owner.Username}}</h1>
         </header>
         {{if eq .Type 'a'}}
             {{if ne .Templates.GroupUser.About.BG ""}}
@@ -42,12 +42,24 @@
             [<span title="UID">{{.Templates.GroupUser.GR.Gruser.ID}}</span>]
             [<span title="Registration date">{{.Templates.GroupUser.CreationDate}}</span>]
             {{if ne .Templates.GroupUser.GR.Extra.Tag ""}}
-            <i title="User's Tag">"{{.Templates.GroupUser.GR.Extra.Tag}}"</i>{{end}} (<b>{{.Templates.GroupUser.About.A.Country}}</b>)
+            <i title="User's Tag">"{{.Templates.GroupUser.GR.Extra.Tag}}"</i>{{end}} {{if ne .Templates.GroupUser.About.A.Country ""}}
+            (<b>{{.Templates.GroupUser.About.A.Country}}</b>)
+            {{end}}
 
+            {{if .Templates.GroupUser.Group}}
+            <h3 id="stats"><a href="#stats">#</a> Statistics</h3>
+            <p>Watchers: <b>{{.Templates.GroupUser.GR.Extra.Stats.Watchers}}</b>; Pageviews: <b>{{.Templates.GroupUser.GR.Extra.Stats.Pageviews}}</b></b>
+            {{else}}
             <h3 id="stats"><a href="#stats">#</a> Statistics</h3>
             <p>Favourites: <b>{{.Templates.GroupUser.GR.Extra.Stats.Favourites}}</b>; Deviations: <b>{{.Templates.GroupUser.GR.Extra.Stats.Deviations}}</b>; Watchers: <b>{{.Templates.GroupUser.GR.Extra.Stats.Watchers}}</b>
             <p>Watching: <b>{{.Templates.GroupUser.GR.Extra.Stats.Watching}}</b>; Pageviews: <b>{{.Templates.GroupUser.GR.Extra.Stats.Pageviews}}</b>; Comments Made: <b>{{.Templates.GroupUser.GR.Extra.Stats.CommentsMade}}</b>; Friends: <b>{{.Templates.GroupUser.GR.Extra.Stats.Friends}}</b></p>
-        
+            {{end}}
+
+            {{if ne .Templates.GroupUser.Admins ""}}
+            <h3 id="admins"><a href="#admins">#</a> Group admins</h3>
+            {{.Templates.GroupUser.Admins}}
+            {{end}}
+
             {{if ne .Templates.GroupUser.About.Interests ""}}
             <h3 id="interests"><a href="#interests">#</a> Interests</h3>
             {{.Templates.GroupUser.About.Interests}}
@@ -68,6 +80,7 @@
             {{.Templates.GroupUser.About.Comments}}
             {{end}}
         {{else}}
+            {{.Templates.GroupUser.Gallery.Folders}}
             {{.Templates.GroupUser.Gallery.List}}
         {{end}}
     </main>

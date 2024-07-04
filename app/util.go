@@ -19,6 +19,15 @@ func (s skunkyart) ExecuteTemplate(file string, data any) {
 	wr(s.Writer, buf.String())
 }
 
+func (s skunkyart) UrlBuilder(strs ...string) string {
+	var str strings.Builder
+	for _, x := range strs {
+		str.WriteString(x)
+		str.WriteString("/")
+	}
+	return str.String()
+}
+
 func (s skunkyart) ReturnHTTPError(status int) {
 	s.Writer.WriteHeader(status)
 
@@ -141,6 +150,10 @@ func (s skunkyart) NavBase(c dlist) string {
 			if s.Query != "" {
 				list.WriteString("&q=")
 				list.WriteString(s.Query)
+			}
+			if f := s.Args.Get("folder"); f != "" {
+				list.WriteString("&folder=")
+				list.WriteString(f)
 			}
 			list.WriteString(`">`)
 			list.WriteString(msg)
