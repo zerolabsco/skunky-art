@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom" xml:lang="en-US">
+  <link rel="self" href="https://inv.clovius.club/feed/channel/UCuxpxCCevIlF-k-K5YU8XPA"/>
+  <id>yt:channel:UCuxpxCCevIlF-k-K5YU8XPA</id>
+  <yt:channelId>UCuxpxCCevIlF-k-K5YU8XPA</yt:channelId>
+  <icon>https://yt3.googleusercontent.com/ytc/AIdro_n7bKr9iusclFjvYw3U8UR74iTCoMcdGTKI3h55SOG8mSsY=s900-c-k-c0x00ffffff-no-rj</icon>
+  <title>Test</title>
+  <link rel="alternate" href="https://skunky.ebloid.ru"/>
+  <author>
+    <name>lost+skunk</name>
+    <uri>https://skunky.ebloid.ru</uri>
+  </author>
+  <image>
+    <url>https://ebloid.ru/_matrix/media/v3/download/ebloid.ru/enfAtfdjzCQMRNBgLXmiURfJ?allow_redirect=true</url>
+    <title>lost+skunk</title>
+    <link rel="self" href="https://skunky.ebloid.ru"/>
+  </image>
+  <entry>
+    <title>Test</title>
+    <link rel="alternate" href="https://2ip.ua"/>
+    <author>
+      <name>lost+skunk</name>
+      <uri>https://skunky.ebloid.ru</uri>
+    </author>
+    <content type="xhtml">
+      <div xmlns="http://www.w3.org/1999/xhtml">
+        <a href="https://2ip.ua">
+          <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/526e735c-e3da-4542-a339-72ccdf827a00/dh3mfuq-5bd6472c-68f4-428d-bb90-8d461fc21410.jpg/v1/fill/w_1920,h_1080/image.gif?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTA4MCIsInBhdGgiOiJcL2ZcLzUyNmU3MzVjLWUzZGEtNDU0Mi1hMzM5LTcyY2NkZjgyN2EwMFwvZGgzbWZ1cS01YmQ2NDcyYy02OGY0LTQyOGQtYmI5MC04ZDQ2MWZjMjE0MTAuanBnIiwid2lkdGgiOiI8PTE5MjAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.S_1DGdd29F5l6Y46Q_bumtGlEEUf_WawZsmF8kBygBs"/>
+        </a>
+        <p>test</p>
+      </div>
+    </content>
+    <published>2024-07-04T00:37:55+00:00</published>
+    <media:group>
+      <media:title>GM Just Announced Their Shutting Down Production in America and Firing Their Workers</media:title>
+      <media:thumbnail url="https://ebloid.ru/_matrix/media/v3/download/ebloid.ru/enfAtfdjzCQMRNBgLXmiURfJ?allow_redirect=true" width="320" height="180"/>
+      <media:description>test</media:description>
+    </media:group>
+    <media:community>
+      <media:statistics views="91247"/>
+    </media:community>
+  </entry>
+</feed>

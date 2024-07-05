@@ -20,6 +20,7 @@ type skunkyart struct {
 	Type      rune
 	Query     string
 	Page      int
+	atom      bool
 	Templates struct {
 		GroupUser struct {
 			GR           devianter.GRuser
@@ -64,6 +65,7 @@ func (s skunkyart) GRUser() {
 	switch s.Type {
 	case 'a':
 		g := group.GR
+		s.atom = false
 		for _, x := range g.Gruser.Page.Modules {
 			switch x.Name {
 			case "about", "group_about":
@@ -173,7 +175,9 @@ func (s skunkyart) GRUser() {
 		s.ReturnHTTPError(400)
 	}
 
-	s.ExecuteTemplate("html/gruser.htm", &s)
+	if !s.atom {
+		s.ExecuteTemplate("html/gruser.htm", &s)
+	}
 }
 
 // посты
@@ -217,13 +221,17 @@ func (s skunkyart) Deviation(author, postname string) {
 
 func (s skunkyart) DD() {
 	dd := devianter.DailyDeviationsFunc(s.Page)
-	s.ExecuteTemplate("html/list.htm", s.DeviationList(dd.Deviations, dlist{
+	ddparsed := s.DeviationList(dd.Deviations, dlist{
 		Pages: 0,
 		More:  dd.HasMore,
-	}))
+	})
+	if !s.atom {
+		s.ExecuteTemplate("html/list.htm", &ddparsed)
+	}
 }
 
 func (s skunkyart) Search() {
+	s.atom = false
 	var e error
 	ss := &s.Templates.Search
 	switch s.Type {

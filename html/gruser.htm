@@ -13,8 +13,8 @@
     <main>
         <header>
             <h1><a href="/">HOME</a> | <a href="/dd">DD</a>
-            | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery</a></h1>{{else}}about">About</a></h1>
-            {{end}}
+            | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery{{else}}about">About{{end}}</a>
+             | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type=gallery&atom=true">RSS</a></h1>
              <form method="get" action="/search">
                 <input type="gallery" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <input type="hidden" name="usr" value="{{.Templates.GroupUser.GR.Owner.Username}}">

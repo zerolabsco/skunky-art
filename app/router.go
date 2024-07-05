@@ -60,6 +60,9 @@ func Router() {
 		}
 		p, _ := strconv.Atoi(arg("p"))
 		skunky.Page = p
+		if arg("atom") == "true" {
+			skunky.atom = true
+		}
 
 		// пути
 		switch path[1] {

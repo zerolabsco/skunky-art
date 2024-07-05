@@ -200,39 +200,87 @@ func (s skunkyart) NavBase(c dlist) string {
 
 func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) string {
 	var list strings.Builder
-	list.WriteString(`<div class="content">`)
+	if !s.atom {
+		list.WriteString(`<div class="content">`)
+	} else {
+		list.WriteString(`<?xml version="1.0" encoding="UTF-8"?><feed xmlns:media="http://search.yahoo.com/mrss" xmlns="http://www.w3.org/2005/Atom">`)
+		list.WriteString(`<title>SkunkyArt</title>`)
+		// list.WriteString(`<link rel="alternate" href="HOMEPAGE_URL"/><link href="FEED_URL" rel="self"/>`)
+	}
 	for _, data := range devs {
 		url := devianter.UrlFromMedia(data.Media)
+		if s.atom {
+			id := strconv.Itoa(data.ID)
+			list.WriteString(`<entry><author><name>`)
+			list.WriteString(data.Author.Username)
+			list.WriteString(`</name></author><title>`)
+			list.WriteString(data.Title)
+			list.WriteString(`</title><link rel="alternate" type="text/html" href="`)
+			list.WriteString(CFG.Base_uri)
+			list.WriteString("/post/")
+			list.WriteString(data.Author.Username)
+			list.WriteString("/atom-")
+			list.WriteString(id)
+			list.WriteString(`"/><id>`)
+			list.WriteString(id)
+			list.WriteString(`</id><published>`)
+			list.WriteString(data.PublishedTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 -0700"))
+			list.WriteString(`</published>`)
+			list.WriteString(`<media:group><media:title>`)
+			list.WriteString(data.Title)
+			list.WriteString(`</media:title><media:thumbinal url="`)
+			list.WriteString(url)
+			list.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
+			list.WriteString(data.Url)
+			list.WriteString(`"><img src="`)
+			list.WriteString(url)
+			list.WriteString(`"/></a><p>`)
+			list.WriteString(ParseDescription(data.TextContent))
+			list.WriteString(`</p></div></content></entry>`)
+		} else {
+			list.WriteString(`<div class="block">`)
+			if url != "" {
+				list.WriteString(`<a title="open/download" href="`)
+				list.WriteString(url)
+				list.WriteString(`"><img src="`)
+				list.WriteString(url)
+				list.WriteString(`" width="15%"></a>`)
+			} else {
+				list.WriteString(`<h1>[ TEXT ]</h1>`)
+			}
+			list.WriteString(`<br><a href="`)
+			list.WriteString("/post/")
+			list.WriteString(data.Author.Username)
+			list.WriteString("/")
+			list.WriteString(data.Url[27:][strings.Index(data.Url[27:], "/art/")+5:])
+			list.WriteString(`">`)
+			list.WriteString(data.Author.Username)
+			list.WriteString(" - ")
+			list.WriteString(data.Title)
 
-		list.WriteString(`<a title="open/download" href="`)
-		list.WriteString(url)
-		list.WriteString(`"><div class="block"><img src="`)
-		list.WriteString(url)
-		list.WriteString(`" width="15%"></a><br><a href="`)
-		list.WriteString("/post/")
-		list.WriteString(data.Author.Username)
-		list.WriteString("/")
-		list.WriteString(data.Url[27:][strings.Index(data.Url[27:], "/art/")+5:])
-		list.WriteString(`">`)
-		list.WriteString(data.Author.Username)
-		list.WriteString(" - ")
-		list.WriteString(data.Title)
+			// шильдики нсфв, аи и ежедневного поста
+			if data.NSFW {
+				list.WriteString(` [<span class="nsfw">NSFW</span>]`)
+			}
+			if data.AI {
+				list.WriteString(" [🤖]")
+			}
+			if data.DD {
+				list.WriteString(` [<span class="dd">DD</span>]`)
+			}
 
-		// шильдики нсфв, аи и ежедневного поста
-		if data.NSFW {
-			list.WriteString(` [<span class="nsfw">NSFW</span>]`)
+			list.WriteString("</a></div>")
 		}
-		if data.AI {
-			list.WriteString(" [🤖]")
-		}
-		if data.DD {
-			list.WriteString(` [<span class="dd">DD</span>]`)
-		}
-
-		list.WriteString("</a></div>")
 	}
-	list.WriteString("</div>")
-	list.WriteString(s.NavBase(content[0]))
+
+	if s.atom {
+		list.WriteString("</feed>")
+		s.Writer.Write([]byte(list.String()))
+		return ""
+	} else {
+		list.WriteString("</div>")
+		list.WriteString(s.NavBase(content[0]))
+	}
 
 	return list.String()
 }
