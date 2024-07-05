@@ -1,12 +1,13 @@
 {
     "listen": "0.0.0.0:3003",
-    "base_uri": null,
+    "base-path": "/skunky/",
     "cache": {
         "enabled": true,
         "path": "cache",
         "lifetime": null,
-        "max_size": 10000
+        "max-size": 100000
     },
-    "proxy": false,
+    "proxy": true,
+    "wixmp-proxy": "http://127.0.0.1:8080",
     "nsfw": false
 }

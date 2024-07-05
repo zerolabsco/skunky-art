@@ -9,11 +9,14 @@ import (
 	"strings"
 )
 
-const addr string = "0.0.0.0:3003"
-
-// роутер
 func Router() {
 	parsepath := func(path string) map[int]string {
+		if l := len(CFG.BasePath); len(path) > l {
+			path = path[l-1:]
+		} else {
+			path = "/"
+		}
+
 		parsedpath := make(map[int]string)
 		for x := 0; true; x++ {
 			slash := strings.Index(path, "/") + 1
@@ -52,16 +55,20 @@ func Router() {
 		var skunky skunkyart
 		skunky.Args = r.URL.Query()
 		skunky.Writer = w
+		skunky.BasePath = CFG.BasePath
 
 		arg := skunky.Args.Get
-		skunky.Query = u.QueryEscape(arg("q"))
+		skunky.QueryRaw = arg("q")
+		skunky.Query = u.QueryEscape(skunky.QueryRaw)
+
 		if t := arg("type"); len(t) > 0 {
 			skunky.Type = rune(t[0])
 		}
 		p, _ := strconv.Atoi(arg("p"))
 		skunky.Page = p
+
 		if arg("atom") == "true" {
-			skunky.atom = true
+			skunky.Atom = true
 		}
 
 		// пути
@@ -69,7 +76,7 @@ func Router() {
 		default:
 			skunky.ReturnHTTPError(404)
 		case "":
-			open_n_send("html/index.htm")
+			skunky.ExecuteTemplate("html/index.htm", &CFG.BasePath)
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -80,9 +87,14 @@ func Router() {
 			skunky.GRUser()
 
 		case "media":
-			skunky.Emojitar(path[2])
+			switch path[2] {
+			case "file":
+				skunky.DownloadAndSendMedia(path[3], next(path, 4))
+			case "emojitar":
+				skunky.Emojitar(path[3])
+			}
 		case "about":
-			open_n_send("html/about.htm")
+			skunky.About()
 		case "gui":
 			w.Header().Add("content-type", "text/css")
 			open_n_send(next(path, 2))
@@ -90,7 +102,7 @@ func Router() {
 	}
 
 	http.HandleFunc("/", handle)
-	http.ListenAndServe(addr, nil)
+	http.ListenAndServe(CFG.Listen, nil)
 }
 
 func err(e error) {

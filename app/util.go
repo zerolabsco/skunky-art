@@ -1,11 +1,17 @@
 package app
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
+	u "net/url"
+	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"text/template"
+	"time"
 
 	"git.macaw.me/skunky/devianter"
 )
@@ -19,11 +25,15 @@ func (s skunkyart) ExecuteTemplate(file string, data any) {
 	wr(s.Writer, buf.String())
 }
 
-func (s skunkyart) UrlBuilder(strs ...string) string {
+func UrlBuilder(strs ...string) string {
 	var str strings.Builder
-	for _, x := range strs {
+	l := len(strs)
+	str.WriteString(CFG.BasePath)
+	for n, x := range strs {
 		str.WriteString(x)
-		str.WriteString("/")
+		if n+1 < l && !(strs[n+1][0] == '?' || strs[n+1][0] == '&') && !(x[0] == '?' || x[0] == '&') {
+			str.WriteString("/")
+		}
 	}
 	return str.String()
 }
@@ -31,16 +41,25 @@ func (s skunkyart) UrlBuilder(strs ...string) string {
 func (s skunkyart) ReturnHTTPError(status int) {
 	s.Writer.WriteHeader(status)
 
-	// пострйока с помощью strings.Builder, потому что такой метод быстрее обычного сложения
 	var msg strings.Builder
-	msg.WriteString(`<html><link rel="stylesheet" href="/gui/css/skunky.css" />`)
-	msg.WriteString("<h1>")
+	msg.WriteString(`<html><link rel="stylesheet" href="`)
+	msg.WriteString(UrlBuilder("gui", "css", "skunky.css"))
+	msg.WriteString(`" /><h1>`)
 	msg.WriteString(strconv.Itoa(status))
 	msg.WriteString(" - ")
 	msg.WriteString(http.StatusText(status))
 	msg.WriteString("</h1></html>")
 
 	wr(s.Writer, msg.String())
+}
+
+func (s skunkyart) ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
+	if len(url) > 32 && url[27:32] != "stash" {
+		url = url[27:]
+		toart := strings.Index(url, "/art/")
+		output = UrlBuilder("post", url[:toart], url[toart+5:])
+	}
+	return
 }
 
 type text struct {
@@ -200,80 +219,78 @@ func (s skunkyart) NavBase(c dlist) string {
 
 func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) string {
 	var list strings.Builder
-	if !s.atom {
-		list.WriteString(`<div class="content">`)
-	} else {
-		list.WriteString(`<?xml version="1.0" encoding="UTF-8"?><feed xmlns:media="http://search.yahoo.com/mrss" xmlns="http://www.w3.org/2005/Atom">`)
+	if s.Atom && s.Page > 1 {
+		s.ReturnHTTPError(400)
+		return ""
+	} else if s.Atom {
+		list.WriteString(`<?xml version="1.0" encoding="UTF-8"?><feed xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">`)
 		list.WriteString(`<title>SkunkyArt</title>`)
 		// list.WriteString(`<link rel="alternate" href="HOMEPAGE_URL"/><link href="FEED_URL" rel="self"/>`)
+	} else {
+		list.WriteString(`<div class="content">`)
 	}
 	for _, data := range devs {
-		url := devianter.UrlFromMedia(data.Media)
-		if s.atom {
-			id := strconv.Itoa(data.ID)
-			list.WriteString(`<entry><author><name>`)
-			list.WriteString(data.Author.Username)
-			list.WriteString(`</name></author><title>`)
-			list.WriteString(data.Title)
-			list.WriteString(`</title><link rel="alternate" type="text/html" href="`)
-			list.WriteString(CFG.Base_uri)
-			list.WriteString("/post/")
-			list.WriteString(data.Author.Username)
-			list.WriteString("/atom-")
-			list.WriteString(id)
-			list.WriteString(`"/><id>`)
-			list.WriteString(id)
-			list.WriteString(`</id><published>`)
-			list.WriteString(data.PublishedTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 -0700"))
-			list.WriteString(`</published>`)
-			list.WriteString(`<media:group><media:title>`)
-			list.WriteString(data.Title)
-			list.WriteString(`</media:title><media:thumbinal url="`)
-			list.WriteString(url)
-			list.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
-			list.WriteString(data.Url)
-			list.WriteString(`"><img src="`)
-			list.WriteString(url)
-			list.WriteString(`"/></a><p>`)
-			list.WriteString(ParseDescription(data.TextContent))
-			list.WriteString(`</p></div></content></entry>`)
-		} else {
-			list.WriteString(`<div class="block">`)
-			if url != "" {
-				list.WriteString(`<a title="open/download" href="`)
+		if !(data.NSFW && !CFG.Nsfw) {
+			url := s.ParseMedia(data.Media)
+			if s.Atom {
+				id := strconv.Itoa(data.ID)
+				list.WriteString(`<entry><author><name>`)
+				list.WriteString(data.Author.Username)
+				list.WriteString(`</name></author><title>`)
+				list.WriteString(data.Title)
+				list.WriteString(`</title><link rel="alternate" type="text/html" href="`)
+				list.WriteString(UrlBuilder("post", data.Author.Username, "atom-"+id))
+				list.WriteString(`"/><id>`)
+				list.WriteString(id)
+				list.WriteString(`</id><published>`)
+				list.WriteString(data.PublishedTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 -0700"))
+				list.WriteString(`</published>`)
+				list.WriteString(`<media:group><media:title>`)
+				list.WriteString(data.Title)
+				list.WriteString(`</media:title><media:thumbinal url="`)
 				list.WriteString(url)
+				list.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
+				list.WriteString(data.Url)
 				list.WriteString(`"><img src="`)
 				list.WriteString(url)
-				list.WriteString(`" width="15%"></a>`)
+				list.WriteString(`"/></a><p>`)
+				list.WriteString(ParseDescription(data.TextContent))
+				list.WriteString(`</p></div></content></entry>`)
 			} else {
-				list.WriteString(`<h1>[ TEXT ]</h1>`)
-			}
-			list.WriteString(`<br><a href="`)
-			list.WriteString("/post/")
-			list.WriteString(data.Author.Username)
-			list.WriteString("/")
-			list.WriteString(data.Url[27:][strings.Index(data.Url[27:], "/art/")+5:])
-			list.WriteString(`">`)
-			list.WriteString(data.Author.Username)
-			list.WriteString(" - ")
-			list.WriteString(data.Title)
+				list.WriteString(`<div class="block">`)
+				if url != "" {
+					list.WriteString(`<a title="open/download" href="`)
+					list.WriteString(url)
+					list.WriteString(`"><img src="`)
+					list.WriteString(url)
+					list.WriteString(`" width="15%"></a>`)
+				} else {
+					list.WriteString(`<h1>[ TEXT ]</h1>`)
+				}
+				list.WriteString(`<br><a href="`)
+				list.WriteString(s.ConvertDeviantArtUrlToSkunkyArt(data.Url))
+				list.WriteString(`">`)
+				list.WriteString(data.Author.Username)
+				list.WriteString(" - ")
+				list.WriteString(data.Title)
 
-			// шильдики нсфв, аи и ежедневного поста
-			if data.NSFW {
-				list.WriteString(` [<span class="nsfw">NSFW</span>]`)
-			}
-			if data.AI {
-				list.WriteString(" [🤖]")
-			}
-			if data.DD {
-				list.WriteString(` [<span class="dd">DD</span>]`)
-			}
+				// шильдики нсфв, аи и ежедневного поста
+				if data.NSFW {
+					list.WriteString(` [<span class="nsfw">NSFW</span>]`)
+				}
+				if data.AI {
+					list.WriteString(" [🤖]")
+				}
+				if data.DD {
+					list.WriteString(` [<span class="dd">DD</span>]`)
+				}
 
-			list.WriteString("</a></div>")
+				list.WriteString("</a></div>")
+			}
 		}
 	}
 
-	if s.atom {
+	if s.Atom {
 		list.WriteString("</feed>")
 		s.Writer.Write([]byte(list.String()))
 		return ""
@@ -301,10 +318,10 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 		}
 		cmmts.WriteString(`"><p id="`)
 		cmmts.WriteString(strconv.Itoa(x.ID))
-		cmmts.WriteString(`"><img src="/media/`)
-		cmmts.WriteString(x.User.Username)
-		cmmts.WriteString(`?type=a" width="30px" height="30px"><a href="/group_user?type=about&q=`)
-		cmmts.WriteString(x.User.Username)
+		cmmts.WriteString(`"><img src="`)
+		cmmts.WriteString(UrlBuilder("media", "emojitar", x.User.Username, "?type=a"))
+		cmmts.WriteString(`" width="30px" height="30px"><a href="`)
+		cmmts.WriteString(UrlBuilder("group_user", "?q=", x.User.Username, "&type=a"))
 		cmmts.WriteString(`"><b`)
 		cmmts.WriteString(` class="`)
 		if x.User.Banned {
@@ -345,4 +362,102 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 	}))
 	cmmts.WriteString("</details>")
 	return cmmts.String()
+}
+
+func (s skunkyart) ParseMedia(media devianter.Media) string {
+	url := devianter.UrlFromMedia(media)
+	if len(url) != 0 {
+		url = url[21:]
+		dot := strings.Index(url, ".")
+
+		return UrlBuilder("media", "file", url[:dot], "/", url[dot+10:])
+	}
+	return ""
+}
+
+func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
+	var url strings.Builder
+	url.WriteString("https://images-wixmp-")
+	url.WriteString(subdomain)
+	url.WriteString(".wixmp.com/")
+	url.WriteString(path)
+	url.WriteString("?token=")
+	url.WriteString(s.Args.Get("token"))
+
+	download := func() (body []byte, status int, headers http.Header) {
+		cli := &http.Client{}
+		if CFG.WixmpProxy != "" {
+			u, e := u.Parse(CFG.WixmpProxy)
+			err(e)
+			cli.Transport = &http.Transport{Proxy: http.ProxyURL(u)}
+		}
+
+		req, e := http.NewRequest("GET", url.String(), nil)
+		err(e)
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0.0")
+
+		resp, e := cli.Do(req)
+		err(e)
+		defer resp.Body.Close()
+
+		b, e := io.ReadAll(resp.Body)
+		err(e)
+		return b, resp.StatusCode, resp.Header
+	}
+
+	if CFG.Cache.Enabled {
+		os.Mkdir(CFG.Cache.Path, 0700)
+		fname := CFG.Cache.Path + "/" + base64.StdEncoding.EncodeToString([]byte(subdomain+path))
+		file, e := os.Open(fname)
+
+		if e != nil {
+			b, status, headers := download()
+			if status == 200 && headers["Content-Type"][0][:5] == "image" {
+				err(os.WriteFile(fname, b, 0700))
+				s.Writer.Write(b)
+			}
+		} else {
+			file, e := io.ReadAll(file)
+			err(e)
+			s.Writer.Write(file)
+		}
+	} else if CFG.Proxy {
+		b, _, _ := download()
+		s.Writer.Write(b)
+	} else {
+		s.Writer.Write([]byte("Sorry, butt proxy on this instance disabled."))
+	}
+}
+
+func InitCacheSystem() {
+	c := &CFG.Cache
+	for {
+		dir, e := os.Open(c.Path)
+		err(e)
+		stat, e := dir.Stat()
+		err(e)
+
+		dirnames, e := dir.Readdirnames(-1)
+		err(e)
+		for _, a := range dirnames {
+			a = c.Path + "/" + a
+			if c.Lifetime != 0 {
+				now := time.Now().UnixMilli()
+
+				f, _ := os.Stat(a)
+				stat := f.Sys().(*syscall.Stat_t)
+				time := time.Unix(stat.Ctim.Unix()).UnixMilli()
+
+				if time+c.Lifetime <= now {
+					os.RemoveAll(a)
+				}
+			}
+			if c.MaxSize != 0 && stat.Size() > c.MaxSize {
+				os.RemoveAll(a)
+			}
+		}
+
+		dir.Close()
+		time.Sleep(time.Second)
+	}
 }

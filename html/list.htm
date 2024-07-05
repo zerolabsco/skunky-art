@@ -2,12 +2,12 @@
 <html>
     <head>
         <title>SkunkyArt</title>
-        <link rel="stylesheet" href="gui/css/skunky.css">
+        <link rel="stylesheet" href="{{.BasePath}}gui/css/skunky.css">
     </head>
     <main>
         <header>
-            <h1><a href="/">HOME</a> | <a href="/dd">DD</a> | <a href="?atom=true">RSS</a></h1>
-            <form method="get" action="/search">
+            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a> | <a href="?atom=true">RSS</a></h1>
+            <form method="get" action="{{.BasePath}}search">
                 <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <select name="type">
                     <option value="all">All</option>
@@ -16,6 +16,6 @@
                 <button type="submit">Search!</button>
             </form>
         </header>
-        {{.}}
+        {{.Templates.SomeList}}
     </main>
 </html>

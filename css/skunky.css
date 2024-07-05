@@ -28,8 +28,11 @@ form input, button, select {
     border: 0px;
     border-radius: 1px;
 }
-.nsfw, .true {
+.nsfw, .about-false {
     color: red;
+}
+.about-true {
+    color: green;
 }
 .author {
     color: seagreen;

@@ -15,13 +15,27 @@ import (
 var wr = io.WriteString
 
 type skunkyart struct {
-	Writer    http.ResponseWriter
-	Args      url.Values
-	Type      rune
-	Query     string
-	Page      int
-	atom      bool
-	Templates struct {
+	Writer          http.ResponseWriter
+	Args            url.Values
+	BasePath        string
+	Type            rune
+	Query, QueryRaw string
+	Page            int
+	Atom            bool
+	Templates       struct {
+		About struct {
+			Proxy bool
+			Nsfw  bool
+		}
+
+		SomeList  string
+		Deviation struct {
+			Post       devianter.Post
+			StringTime string
+			Tags       string
+			Comments   string
+		}
+
 		GroupUser struct {
 			GR           devianter.GRuser
 			Admins       string
@@ -51,6 +65,19 @@ type skunkyart struct {
 	}
 }
 
+// var Templates struct {
+//	Index string
+//	About string
+//
+//	GRuser string
+//	Deviation string
+//	List string
+//	Search string
+// }
+
+// //go:embed ../html/*
+// var Templates embed.FS
+
 func (s skunkyart) GRUser() {
 	if len(s.Query) < 1 {
 		s.ReturnHTTPError(400)
@@ -65,7 +92,7 @@ func (s skunkyart) GRUser() {
 	switch s.Type {
 	case 'a':
 		g := group.GR
-		s.atom = false
+		s.Atom = false
 		for _, x := range g.Gruser.Page.Modules {
 			switch x.Name {
 			case "about", "group_about":
@@ -110,17 +137,15 @@ func (s skunkyart) GRUser() {
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
-				group.About.BG = devianter.UrlFromMedia(group.About.BGMeta.Media)
+				group.About.BGMeta.Url = s.ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
+				group.About.BG = s.ParseMedia(group.About.BGMeta.Media)
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
 					htm.WriteString(`<p><img src="`)
-					htm.WriteString("/media/")
-					htm.WriteString(z.User.Username)
-					htm.WriteString("?type=a")
+					htm.WriteString(UrlBuilder("media", "emojitar", z.User.Username, "?type=a"))
 					htm.WriteString(`"><a href="`)
-					htm.WriteString("/group_user?type=about&q=")
-					htm.WriteString(z.User.Username)
+					htm.WriteString(UrlBuilder("group_user", "?type=about&q=", z.User.Username))
 					htm.WriteString(`">`)
 					htm.WriteString(z.User.Username)
 					htm.WriteString(`</a></p>`)
@@ -175,24 +200,18 @@ func (s skunkyart) GRUser() {
 		s.ReturnHTTPError(400)
 	}
 
-	if !s.atom {
+	if !s.Atom {
 		s.ExecuteTemplate("html/gruser.htm", &s)
 	}
 }
 
 // посты
 func (s skunkyart) Deviation(author, postname string) {
-	// поиск ID
-	re := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
-	if len(re) >= 1 {
-		var post struct {
-			Post       devianter.Post
-			StringTime string
-			Tags       string
-			Comments   string
-		}
+	id_search := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
+	if len(id_search) >= 1 {
+		post := &s.Templates.Deviation
 
-		id := re[len(re)-1]
+		id := id_search[len(id_search)-1]
 		post.Post = devianter.DeviationFunc(id, author)
 
 		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
@@ -202,9 +221,9 @@ func (s skunkyart) Deviation(author, postname string) {
 		// хештэги
 		for _, x := range post.Post.Deviation.Extended.Tags {
 			var tag strings.Builder
-			tag.WriteString(` <a href="/search?q=`)
-			tag.WriteString(x.Name)
-			tag.WriteString(`&type=tag">#`)
+			tag.WriteString(` <a href="`)
+			tag.WriteString(UrlBuilder("search", "?q=", x.Name, "&type=tag"))
+			tag.WriteString(`">#`)
 			tag.WriteString(x.Name)
 			tag.WriteString("</a>")
 
@@ -213,7 +232,7 @@ func (s skunkyart) Deviation(author, postname string) {
 
 		post.Comments = s.ParseComments(devianter.CommentsFunc(id, post.Post.Comments.Cursor, s.Page, 1))
 
-		s.ExecuteTemplate("html/deviantion.htm", &post)
+		s.ExecuteTemplate("html/deviantion.htm", &s)
 	} else {
 		s.ReturnHTTPError(400)
 	}
@@ -221,17 +240,17 @@ func (s skunkyart) Deviation(author, postname string) {
 
 func (s skunkyart) DD() {
 	dd := devianter.DailyDeviationsFunc(s.Page)
-	ddparsed := s.DeviationList(dd.Deviations, dlist{
+	s.Templates.SomeList = s.DeviationList(dd.Deviations, dlist{
 		Pages: 0,
 		More:  dd.HasMore,
 	})
-	if !s.atom {
-		s.ExecuteTemplate("html/list.htm", &ddparsed)
+	if !s.Atom {
+		s.ExecuteTemplate("html/list.htm", &s)
 	}
 }
 
 func (s skunkyart) Search() {
-	s.atom = false
+	s.Atom = false
 	var e error
 	ss := &s.Templates.Search
 	switch s.Type {
@@ -262,4 +281,10 @@ func (s skunkyart) Emojitar(name string) {
 	} else {
 		s.ReturnHTTPError(400)
 	}
+}
+
+func (s skunkyart) About() {
+	s.Templates.About.Nsfw = CFG.Nsfw
+	s.Templates.About.Proxy = CFG.Proxy
+	s.ExecuteTemplate("html/about.htm", &s)
 }

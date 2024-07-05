@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>SkunkyArt | Search "{{.Query}}"</title>
-        <link rel="stylesheet" href="/gui/css/skunky.css">
+        <title>SkunkyArt | Search "{{.QueryRaw}}"</title>
+        <link rel="stylesheet" href="{{.BasePath}}gui/css/skunky.css">
     </head>
     <main>
         <header>
-            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
+            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a></h1>
             <form method="get" action="search">
                 <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <select name="type">

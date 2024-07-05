@@ -8,14 +8,14 @@
         gallery of {{.Templates.GroupUser.GR.Owner.Username}}
         {{end}}
         </title>
-        <link rel="stylesheet" href="/gui/css/skunky.css">
+        <link rel="stylesheet" href="{{.BasePath}}gui/css/skunky.css">
     </head>
     <main>
         <header>
-            <h1><a href="/">HOME</a> | <a href="/dd">DD</a>
+            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a>
             | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery{{else}}about">About{{end}}</a>
              | <a href="?q={{.Templates.GroupUser.GR.Owner.Username}}&type=gallery&atom=true">RSS</a></h1>
-             <form method="get" action="/search">
+             <form method="get" action="{{.BasePath}}search">
                 <input type="gallery" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <input type="hidden" name="usr" value="{{.Templates.GroupUser.GR.Owner.Username}}">
                 <select name="type">
@@ -32,7 +32,7 @@
             {{.Templates.GroupUser.About.BGMeta.Author.Username}} - {{end}}{{.Templates.GroupUser.About.BGMeta.Title}}" src="{{.Templates.GroupUser.About.BG}}"></a>
             {{end}}
 
-            <img src="/media/{{.Templates.GroupUser.GR.Owner.Username}}?type=a" width="30px" height="30px"> <b>{{.Templates.GroupUser.GR.Owner.Username}}</b>
+            <img src="{{.BasePath}}media/emojitar/{{.Templates.GroupUser.GR.Owner.Username}}?type=a" width="30px" height="30px"> <b>{{.Templates.GroupUser.GR.Owner.Username}}</b>
             {{if (eq .Templates.GroupUser.About.A.Gender "male")}}
             ♂️
             {{end}}

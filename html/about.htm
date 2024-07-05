@@ -2,12 +2,12 @@
 <html>
     <head>
         <title>SkunkyArt</title>
-        <link rel="stylesheet" href="gui/css/skunky.css">
+        <link rel="stylesheet" href="{{.BasePath}}gui/css/skunky.css">
     </head>
     <main>
         <header>
-            <h1><a href="/">HOME</a> | <a href="/dd">DD</a></h1>
-            <form method="get" action="/search">
+            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a></h1>
+            <form method="get" action="{{.BasePath}}search">
                 <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <select name="type">
                     <option value="all">All</option>
@@ -19,5 +19,11 @@
         <p>
             SkunkyArt is an alternative frontend for deviantart.com, written in Go.
         </p>
+        <h2>Instance settings:</h2>
+        <ul>
+            <li><b>NSFW</b>: <span class="about-{{.Templates.About.Nsfw}}">{{if .Templates.About.Nsfw}}YES{{else}}NO{{end}}</span></li>
+            <li><b>Proxyfing</b>: <span class="about-{{.Templates.About.Proxy}}">{{if .Templates.About.Proxy}}YES{{else}}NO{{end}}</span></li>
+        </ul>
+        <p>Copyright <a href="https://go.kde.org/matrix/#/@softpigeones:ebloid.ru" target="_blank">lost+skunk</a>, X11. <a href="https://git.macaw.me/skunky/skunkyart/src/tag/v1.3" target="_blank">SkunkyArt v1.3</a></p>
     </main>
 </html>

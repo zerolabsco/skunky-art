@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+	app.ExecuteConfig()
 	err := devianter.UpdateCSRF()
 	if err != nil {
 		println(err.Error())

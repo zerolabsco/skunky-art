@@ -1,26 +1,31 @@
 package app
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 )
 
 type cache_config struct {
-	Enabled            bool
-	Path               string
-	Max_size, Lifetime int64
+	Enabled  bool
+	Path     string
+	MaxSize  int64 `json:"max-size"`
+	Lifetime int64
 }
 
 type config struct {
-	cfg              string
-	Listen, Base_uri string
-	Cache            cache_config
-	Proxy, Nsfw      bool
+	cfg         string
+	Listen      string
+	BasePath    string `json:"base-path"`
+	Cache       cache_config
+	Proxy, Nsfw bool
+	WixmpProxy  string `json:"wixmp-proxy"`
 }
 
 var CFG = config{
 	cfg:      "config.json",
 	Listen:   "127.0.0.1:3003",
-	Base_uri: "/",
+	BasePath: "/",
 	Cache: cache_config{
 		Enabled: true,
 		Path:    "cache",
@@ -29,20 +34,46 @@ var CFG = config{
 	Nsfw:  true,
 }
 
-func execcfg() {
+func ExecuteConfig() {
+	try := func(err error, exitcode int) {
+		if err != nil {
+			println(err.Error())
+			os.Exit(exitcode)
+		}
+	}
+
 	a := os.Args
-	for num, val := range a {
-		switch val {
-		case "-conf":
-			CFG.cfg = a[num]
-		case "-help":
-			println(`SkunkyArt v 1.3 [refactoring]
+	if l := len(a); l > 1 {
+		switch a[1] {
+		case "-c", "--config":
+			if l >= 3 {
+				CFG.cfg = a[2]
+			} else {
+				try(errors.New("Not enought arguments"), 1)
+			}
+		case "-h", "--help":
+			try(errors.New(`SkunkyArt v1.3 [refactoring]
 Usage:
-	- -conf - path to config
-	- -help this message
+	- [-c|--config] - path to config
+	- [-h|--help]	- returns this message
 Example:
-	./skunkyart -conf config.json
-Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3`)
+	./skunkyart -c config.json
+Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3`), 0)
+		default:
+			try(errors.New("Unreconginzed argument: "+a[1]), 1)
+		}
+		if CFG.cfg != "" {
+			f, err := os.ReadFile(CFG.cfg)
+			try(err, 1)
+
+			try(json.Unmarshal(f, &CFG), 1)
+			if CFG.Cache.Enabled && !CFG.Proxy {
+				try(errors.New("Incompatible settings detected: cannot use caching media content without proxy"), 1)
+			}
+
+			if CFG.Cache.MaxSize != 0 || CFG.Cache.Lifetime != 0 {
+				go InitCacheSystem()
+			}
 		}
 	}
 }
