@@ -18,7 +18,7 @@
         </header>
         {{if ne .Templates.Search.List ""}}
         {{if ne .Templates.Search.Content.Total 0}}
-        <h1>Total resuls: {{.Templates.Search.Content.Total}}</h1>
+        <h1>Results by request '{{.QueryRaw}}': {{.Templates.Search.Content.Total}}</h1>
         {{end}}
         {{.Templates.Search.List}}
         {{else}}

@@ -38,6 +38,12 @@
             {{.Templates.Deviation.Post.Description}}
             </figcaption>
             {{end}}
+            {{if ne .Templates.Deviation.Related ""}}
+            <details>
+                <summary>Related content</summary>
+                {{.Templates.Deviation.Related}}
+            </details>
+            {{end}}
             {{if (ne .Templates.Deviation.Comments "")}}
             {{.Templates.Deviation.Comments}}
             {{end}}

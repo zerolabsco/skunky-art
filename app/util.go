@@ -19,7 +19,8 @@ import (
 // парсинг темплейтов
 func (s skunkyart) ExecuteTemplate(file string, data any) {
 	var buf strings.Builder
-	tmp, e := template.ParseFiles(file)
+	tmp := template.New(file)
+	tmp, e := tmp.Parse(Templates[file])
 	err(e)
 	err(tmp.Execute(&buf, &data))
 	wr(s.Writer, buf.String())
@@ -57,7 +58,9 @@ func (s skunkyart) ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
 	if len(url) > 32 && url[27:32] != "stash" {
 		url = url[27:]
 		toart := strings.Index(url, "/art/")
-		output = UrlBuilder("post", url[:toart], url[toart+5:])
+		if toart != -1 {
+			output = UrlBuilder("post", url[:toart], url[toart+5:])
+		}
 	}
 	return
 }
@@ -261,7 +264,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) s
 				if url != "" {
 					list.WriteString(`<a title="open/download" href="`)
 					list.WriteString(url)
-					list.WriteString(`"><img src="`)
+					list.WriteString(`"><img loading="lazy" src="`)
 					list.WriteString(url)
 					list.WriteString(`" width="15%"></a>`)
 				} else {
@@ -296,7 +299,9 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) s
 		return ""
 	} else {
 		list.WriteString("</div>")
-		list.WriteString(s.NavBase(content[0]))
+		if content != nil {
+			list.WriteString(s.NavBase(content[0]))
+		}
 	}
 
 	return list.String()
@@ -425,6 +430,7 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 		b, _, _ := download()
 		s.Writer.Write(b)
 	} else {
+		s.Writer.WriteHeader(403)
 		s.Writer.Write([]byte("Sorry, butt proxy on this instance disabled."))
 	}
 }
@@ -441,6 +447,9 @@ func InitCacheSystem() {
 		err(e)
 		for _, a := range dirnames {
 			a = c.Path + "/" + a
+			rm := func() {
+				err(os.RemoveAll(a))
+			}
 			if c.Lifetime != 0 {
 				now := time.Now().UnixMilli()
 
@@ -449,15 +458,33 @@ func InitCacheSystem() {
 				time := time.Unix(stat.Ctim.Unix()).UnixMilli()
 
 				if time+c.Lifetime <= now {
-					os.RemoveAll(a)
+					rm()
 				}
 			}
 			if c.MaxSize != 0 && stat.Size() > c.MaxSize {
-				os.RemoveAll(a)
+				rm()
 			}
 		}
 
 		dir.Close()
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(CFG.Cache.UpdateInterval))
+	}
+}
+
+func CopyTemplatesToMemory() {
+	try := func(e error) {
+		if e != nil {
+			panic(e.Error())
+		}
+	}
+
+	dir, e := os.ReadDir(CFG.TemplatesDir)
+	try(e)
+
+	for _, x := range dir {
+		n := CFG.TemplatesDir + "/" + x.Name()
+		file, e := os.ReadFile(n)
+		try(e)
+		Templates[n] = string(file)
 	}
 }

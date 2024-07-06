@@ -1,13 +1,15 @@
 {
     "listen": "0.0.0.0:3003",
-    "base-path": "/skunky/",
+    "base-path": "/",
     "cache": {
         "enabled": true,
         "path": "cache",
         "lifetime": null,
-        "max-size": 100000
+        "max-size": 100000,
+        "update-interval": 5
     },
-    "proxy": true,
+    "templates-dir": "html",
     "wixmp-proxy": "http://127.0.0.1:8080",
+    "proxy": true,
     "nsfw": false
 }

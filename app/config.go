@@ -7,19 +7,21 @@ import (
 )
 
 type cache_config struct {
-	Enabled  bool
-	Path     string
-	MaxSize  int64 `json:"max-size"`
-	Lifetime int64
+	Enabled        bool
+	Path           string
+	MaxSize        int64 `json:"max-size"`
+	Lifetime       int64
+	UpdateInterval int64 `json:"update-interval"`
 }
 
 type config struct {
-	cfg         string
-	Listen      string
-	BasePath    string `json:"base-path"`
-	Cache       cache_config
-	Proxy, Nsfw bool
-	WixmpProxy  string `json:"wixmp-proxy"`
+	cfg          string
+	Listen       string
+	BasePath     string `json:"base-path"`
+	Cache        cache_config
+	Proxy, Nsfw  bool
+	WixmpProxy   string `json:"wixmp-proxy"`
+	TemplatesDir string `json:"templates-dir"`
 }
 
 var CFG = config{
@@ -27,11 +29,13 @@ var CFG = config{
 	Listen:   "127.0.0.1:3003",
 	BasePath: "/",
 	Cache: cache_config{
-		Enabled: true,
-		Path:    "cache",
+		Enabled:        true,
+		Path:           "cache",
+		UpdateInterval: 1,
 	},
-	Proxy: true,
-	Nsfw:  true,
+	TemplatesDir: "html",
+	Proxy:        true,
+	Nsfw:         true,
 }
 
 func ExecuteConfig() {

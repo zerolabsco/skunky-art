@@ -13,6 +13,7 @@ import (
 )
 
 var wr = io.WriteString
+var Templates = make(map[string]string)
 
 type skunkyart struct {
 	Writer          http.ResponseWriter
@@ -31,6 +32,7 @@ type skunkyart struct {
 		SomeList  string
 		Deviation struct {
 			Post       devianter.Post
+			Related    string
 			StringTime string
 			Tags       string
 			Comments   string
@@ -64,19 +66,6 @@ type skunkyart struct {
 		}
 	}
 }
-
-// var Templates struct {
-//	Index string
-//	About string
-//
-//	GRuser string
-//	Deviation string
-//	List string
-//	Search string
-// }
-
-// //go:embed ../html/*
-// var Templates embed.FS
 
 func (s skunkyart) GRUser() {
 	if len(s.Query) < 1 {
@@ -217,6 +206,12 @@ func (s skunkyart) Deviation(author, postname string) {
 		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
 		// время публикации
 		post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
+		post.Post.IMG = s.ParseMedia(post.Post.Deviation.Media)
+		for _, x := range post.Post.Deviation.Extended.RelatedContent {
+			if len(x.Deviations) != 0 {
+				post.Related = s.DeviationList(x.Deviations)
+			}
+		}
 
 		// хештэги
 		for _, x := range post.Post.Deviation.Extended.Tags {

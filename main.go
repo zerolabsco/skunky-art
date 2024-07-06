@@ -8,6 +8,7 @@ import (
 
 func main() {
 	app.ExecuteConfig()
+	app.CopyTemplatesToMemory()
 	err := devianter.UpdateCSRF()
 	if err != nil {
 		println(err.Error())
