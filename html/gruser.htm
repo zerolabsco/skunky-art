@@ -57,7 +57,9 @@
 
             {{if ne .Templates.GroupUser.Admins ""}}
             <h3 id="admins"><a href="#admins">#</a> Group admins</h3>
+            <div class="admins">
             {{.Templates.GroupUser.Admins}}
+            </div>
             {{end}}
 
             {{if ne .Templates.GroupUser.About.Interests ""}}

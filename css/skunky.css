@@ -81,7 +81,7 @@ form input, button, select {
     border: 3px solid #4d27d6;
     transition: 400ms;
 }
-.block img {
+.block img, .admins .admin img{
     width: 100%;
 }
 .block p {
@@ -94,4 +94,22 @@ form input, button, select {
 }
 .ubg img {
     width: 20%;
+}
+.folders {
+    display: flex
+}
+.folder-item {
+    background-color: #060820;
+    border: 3px solid #060820;
+}
+.admins {
+    display: flex
+}
+.admins .admin {
+    margin-left: 1%;
+    background-color: #011522;
+    padding: 3px;
+    word-break: break-all;
+    text-align: center;
+    width: 5%;
 }

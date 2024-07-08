@@ -11,5 +11,5 @@
     "templates-dir": "html",
     "wixmp-proxy": "http://127.0.0.1:8080",
     "proxy": true,
-    "nsfw": false
+    "nsfw": true
 }

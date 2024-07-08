@@ -131,13 +131,13 @@ func (s skunkyart) GRUser() {
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
-					htm.WriteString(`<p><img src="`)
+					htm.WriteString(`<div class="admin"><img src="`)
 					htm.WriteString(UrlBuilder("media", "emojitar", z.User.Username, "?type=a"))
 					htm.WriteString(`"><a href="`)
 					htm.WriteString(UrlBuilder("group_user", "?type=about&q=", z.User.Username))
 					htm.WriteString(`">`)
 					htm.WriteString(z.User.Username)
-					htm.WriteString(`</a></p>`)
+					htm.WriteString(`</a></div>`)
 				}
 				group.Admins += htm.String()
 			}
@@ -158,8 +158,18 @@ func (s skunkyart) GRUser() {
 			for _, x := range gallery.Content.Gruser.Page.Modules {
 				if l := len(x.ModuleData.Folders.Results); l != 0 {
 					var folders strings.Builder
-					folders.WriteString(`<h3 class="folders">Folders: `)
-					for n, x := range x.ModuleData.Folders.Results {
+					folders.WriteString(`<h1 id="folders"><a href="#folder">#</a> Folders</h1><div class="folders"><br>`)
+					for _, x := range x.ModuleData.Folders.Results {
+						folders.WriteString(`<div class="block folder-item">`)
+
+						folders.WriteString(`<a href="`)
+						folders.WriteString(s.ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
+						folders.WriteString(`"><img loading="lazy" src="`)
+						folders.WriteString(s.ParseMedia(x.Thumb.Media))
+						folders.WriteString(`" title="`)
+						folders.WriteString(x.Thumb.Title)
+						folders.WriteString(`"></a><br>`)
+
 						folders.WriteString(`<a href="?folder=`)
 						folders.WriteString(strconv.Itoa(x.FolderId))
 						folders.WriteString("&q=")
@@ -169,11 +179,10 @@ func (s skunkyart) GRUser() {
 						folders.WriteString(`">`)
 						folders.WriteString(x.Name)
 						folders.WriteString(`</a>`)
-						if n+1 < l {
-							folders.WriteString(" | ")
-						}
+
+						folders.WriteString("</div>")
 					}
-					folders.WriteString("</h3>")
+					folders.WriteString(`</div><h1 id="content"><a href="#content">#</a> Content</h1>`)
 					group.Gallery.Folders = folders.String()
 				}
 
@@ -223,6 +232,10 @@ func (s skunkyart) Deviation(author, postname string) {
 			tag.WriteString("</a>")
 
 			post.Tags += tag.String()
+		}
+
+		if post.Post.Comments.Total <= 50 {
+			post.Post.Comments.Cursor = ""
 		}
 
 		post.Comments = s.ParseComments(devianter.CommentsFunc(id, post.Post.Comments.Cursor, s.Page, 1))
