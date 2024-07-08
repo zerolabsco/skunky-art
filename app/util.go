@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"git.macaw.me/skunky/devianter"
+	"golang.org/x/net/html"
 )
 
 // парсинг темплейтов
@@ -95,18 +96,59 @@ func ParseDescription(dscr devianter.Text) string {
 		description[dl-1] == '}' {
 		var descr struct {
 			Blocks []struct {
-				Key, Text, Type   string
+				Text, Type        string
 				InlineStyleRanges []struct {
 					Offset, Length int
 					Style          string
+				}
+				EntityRanges []struct {
+					Offset, Length int
+					Key            int
+				}
+				Data struct {
+					TextAlignment string
+				}
+			}
+			EntityMap map[string]struct {
+				Type string
+				Data struct {
+					Config struct {
+						Aligment string
+						Width    int
+					}
+					Data devianter.Deviation
 				}
 			}
 		}
 		e := json.Unmarshal([]byte(description), &descr)
 		err(e)
 
+		entities := make(map[int]devianter.Deviation)
+		for n, x := range descr.EntityMap {
+			num, _ := strconv.Atoi(n)
+			entities[num] = x.Data.Data
+		}
+
 		for _, x := range descr.Blocks {
 			ranges := make(map[int]text)
+
+			if len(x.InlineStyleRanges) == 0 {
+				switch x.Type {
+				case "atomic":
+					d := entities[x.EntityRanges[0].Key]
+					parseddescription.WriteString(`<img width="50%" src="`)
+					parseddescription.WriteString(ParseMedia(d.Media))
+					parseddescription.WriteString(`" title="`)
+					parseddescription.WriteString(d.Author.Username)
+					parseddescription.WriteString(" - ")
+					parseddescription.WriteString(d.Title)
+					parseddescription.WriteString(`">`)
+				case "unstyled":
+					parseddescription.WriteString(x.Text)
+				}
+				parseddescription.WriteString("<br>")
+			}
+
 			for i, rngs := range x.InlineStyleRanges {
 				var tag string
 
@@ -140,7 +182,66 @@ func ParseDescription(dscr devianter.Text) string {
 			}
 		}
 	} else if dl != 0 {
-		parseddescription.WriteString(description)
+		tagval := func(t *html.Tokenizer) string {
+			for {
+				tt := t.Next()
+				switch tt {
+				case html.ErrorToken:
+					return ""
+				case html.TextToken:
+					return string(t.Text())
+				}
+			}
+		}
+
+		tt := html.NewTokenizer(strings.NewReader(dscr.Html.Markup))
+		for {
+			t := tt.Next()
+			switch t {
+			case html.ErrorToken:
+				return parseddescription.String()
+			case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
+				token := tt.Token()
+				switch token.Data {
+				case "a":
+					for _, a := range token.Attr {
+						if a.Key == "href" {
+							url := strings.ReplaceAll(a.Val, "https://www.deviantart.com/users/outgoing?", "")
+							if strings.Contains(url, "deviantart") {
+								url = strings.ReplaceAll(url, "https://www.deviantart.com/", "")
+								url = strings.ReplaceAll(url, url[0:strings.Index(url, "/")+1], "")
+							}
+							parseddescription.WriteString("<a target=\"_blank\" href=\"" + url + "\">" + tagval(tt) + "</a> ")
+						}
+					}
+				case "img":
+					var (
+						uri, title string
+					)
+					for b, a := range token.Attr {
+						switch a.Key {
+						case "src":
+							if len(a.Val) > 9 && a.Val[8:9] == "e" {
+								uri = UrlBuilder("media", "emojitar", a.Val[37:len(a.Val)-4], "?type=e")
+							}
+						case "title":
+							title = a.Val
+						}
+						if title != "" {
+							for x := -1; x < b; x++ {
+								parseddescription.WriteString("<img src=\"" + uri + "\" title=\"" + title + "\">")
+							}
+						}
+					}
+				case "br", "li", "ul", "p", "b":
+					parseddescription.WriteString(token.String())
+				case "div":
+					parseddescription.WriteString("<p> ")
+				}
+			case html.TextToken:
+				parseddescription.Write(tt.Text())
+			}
+		}
 	}
 
 	return parseddescription.String()
@@ -234,7 +335,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) s
 	}
 	for _, data := range devs {
 		if !(data.NSFW && !CFG.Nsfw) {
-			url := s.ParseMedia(data.Media)
+			url := ParseMedia(data.Media)
 			if s.Atom {
 				id := strconv.Itoa(data.ID)
 				list.WriteString(`<entry><author><name>`)
@@ -307,7 +408,6 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...dlist) s
 	return list.String()
 }
 
-// FIXME: первый комментарий не отображается.
 func (s skunkyart) ParseComments(c devianter.Comments) string {
 	var cmmts strings.Builder
 	replied := make(map[int]string)
@@ -354,7 +454,7 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 		cmmts.WriteString(x.Posted.UTC().String())
 		cmmts.WriteString("]<p>")
 
-		cmmts.WriteString(x.Comment)
+		cmmts.WriteString(ParseDescription(x.TextContent))
 		cmmts.WriteString("<p>👍: ")
 		cmmts.WriteString(strconv.Itoa(x.Likes))
 		cmmts.WriteString(" ⏩: ")
@@ -369,7 +469,7 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 	return cmmts.String()
 }
 
-func (s skunkyart) ParseMedia(media devianter.Media) string {
+func ParseMedia(media devianter.Media) string {
 	url := devianter.UrlFromMedia(media)
 	if len(url) != 0 {
 		url = url[21:]

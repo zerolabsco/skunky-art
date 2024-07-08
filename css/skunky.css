@@ -60,6 +60,7 @@ form input, button, select {
     color: rgb(160, 0, 147);
 }
 .content {
+    align-items: center;
     border-radius: 3px;
     display: flex;
     flex-wrap: wrap;
@@ -112,4 +113,31 @@ form input, button, select {
     word-break: break-all;
     text-align: center;
     width: 5%;
+}
+
+@media screen and (orientation: portrait) {
+    header {
+        scale: 155%;
+        justify-content: center;
+    }
+    .content {
+        margin: auto;
+        display: inherit;
+        scale: 100%;
+    }
+    .block {
+        max-width: 60%;
+    }
+}
+
+@media screen and (max-width: 1462px) {
+    .block {
+        max-width: 30%;
+    }
+}
+
+@media screen and (min-width: 788px) and (max-width: 884px) {
+    .block {
+        max-width: 35%;
+    }
 }

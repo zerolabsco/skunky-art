@@ -1,0 +1,14 @@
+{
+    "instances": [{
+        "urls": [{
+            "i2p": "http://skunky.i2p/art",
+            "tor": "http://skunky0wjkf8j8ajofgh98aOZjhu8f.onion/art",
+            "ygg": "http://[324:71e:281a:9ed3::fa11]/skunkyart",
+            "clearnet": "https://skunky.net/art"
+        }],
+        "settings": {
+            "nsfw": true,
+            "proxy": true
+        }
+    }]
+}
