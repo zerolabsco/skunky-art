@@ -113,6 +113,12 @@ func ParseDescription(dscr devianter.Text) string {
 		}
 		return content
 	}
+	DeleteSpywareFromUrl := func(url string) string {
+		if len(url) > 42 && url[:42] == "https://www.deviantart.com/users/outgoing?" {
+			url = url[42:]
+		}
+		return url
+	}
 
 	if description, dl := dscr.Html.Markup, len(dscr.Html.Markup); dl != 0 &&
 		description[0] == '{' &&
@@ -135,6 +141,7 @@ func ParseDescription(dscr devianter.Text) string {
 			EntityMap map[string]struct {
 				Type string
 				Data struct {
+					Url    string
 					Config struct {
 						Aligment string
 						Width    int
@@ -147,30 +154,17 @@ func ParseDescription(dscr devianter.Text) string {
 		err(e)
 
 		entities := make(map[int]devianter.Deviation)
+		urls := make(map[int]string)
 		for n, x := range descr.EntityMap {
 			num, _ := strconv.Atoi(n)
+			if x.Data.Url != "" {
+				urls[num] = DeleteSpywareFromUrl(x.Data.Url)
+			}
 			entities[num] = x.Data.Data
 		}
 
 		for _, x := range descr.Blocks {
 			ranges := make(map[int]text)
-
-			if len(x.InlineStyleRanges) == 0 {
-				switch x.Type {
-				case "atomic":
-					d := entities[x.EntityRanges[0].Key]
-					parseddescription.WriteString(`<img width="50%" src="`)
-					parseddescription.WriteString(ParseMedia(d.Media))
-					parseddescription.WriteString(`" title="`)
-					parseddescription.WriteString(d.Author.Username)
-					parseddescription.WriteString(" - ")
-					parseddescription.WriteString(d.Title)
-					parseddescription.WriteString(`">`)
-				case "unstyled":
-					parseddescription.WriteString(x.Text)
-				}
-				parseddescription.WriteString("<br>")
-			}
 
 			for i, rngs := range x.InlineStyleRanges {
 				var tag string
@@ -192,22 +186,48 @@ func ParseDescription(dscr devianter.Text) string {
 				}
 			}
 
-			for _, r := range ranges {
-				var tag string
-				switch x.Type {
-				case "header-two":
-					tag = "h2"
-				case "unstyled":
-					tag = "p"
+			switch x.Type {
+			case "atomic":
+				d := entities[x.EntityRanges[0].Key]
+				parseddescription.WriteString(`<img width="50%" src="`)
+				parseddescription.WriteString(ParseMedia(d.Media))
+				parseddescription.WriteString(`" title="`)
+				parseddescription.WriteString(d.Author.Username)
+				parseddescription.WriteString(" - ")
+				parseddescription.WriteString(d.Title)
+				parseddescription.WriteString(`">`)
+			case "unstyled":
+				if len(ranges) != 0 {
+					for _, r := range ranges {
+						var tag string
+						switch x.Type {
+						case "header-two":
+							tag = "h2"
+						}
+
+						parseddescription.WriteString(x.Text[:r.from])
+						if len(urls) != 0 && len(x.EntityRanges) != 0 {
+							ra := &x.EntityRanges[0]
+
+							parseddescription.WriteString(`<a target="_blank" href="`)
+							parseddescription.WriteString(urls[ra.Key])
+							parseddescription.WriteString(`">`)
+							parseddescription.WriteString(r.TXT)
+							parseddescription.WriteString(`</a>`)
+						} else {
+							parseddescription.WriteString(r.TXT)
+						}
+						parseddescription.WriteString(TagBuilder(tag, x.Text[r.to:]))
+					}
+				} else {
+					parseddescription.WriteString(x.Text)
 				}
-				parseddescription.WriteString(r.TXT)
-				parseddescription.WriteString(TagBuilder(tag, x.Text[r.to:]))
 			}
+			parseddescription.WriteString("<br>")
 		}
 	} else if dl != 0 {
 		for tt := html.NewTokenizer(strings.NewReader(dscr.Html.Markup)); ; {
-			t := tt.Next()
-			switch t {
+			switch tt.Next() {
 			case html.ErrorToken:
 				return parseddescription.String()
 			case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
@@ -216,18 +236,16 @@ func ParseDescription(dscr devianter.Text) string {
 				case "a":
 					for _, a := range token.Attr {
 						if a.Key == "href" {
-							url := strings.ReplaceAll(a.Val, "https://www.deviantart.com/users/outgoing?", "")
-							if strings.Contains(url, "deviantart") {
-								url = strings.ReplaceAll(url, "https://www.deviantart.com/", "")
-								url = strings.ReplaceAll(url, url[0:strings.Index(url, "/")+1], "")
-							}
-							parseddescription.WriteString("<a target=\"_blank\" href=\"" + url + "\">" + tagval(tt) + "</a> ")
+							url := DeleteSpywareFromUrl(a.Val)
+							parseddescription.WriteString(`<a target="_blank" href="`)
+							parseddescription.WriteString(url)
+							parseddescription.WriteString(`">`)
+							parseddescription.WriteString(tagval(tt))
+							parseddescription.WriteString("</a> ")
 						}
 					}
 				case "img":
-					var (
-						uri, title string
-					)
+					var uri, title string
 					for b, a := range token.Attr {
 						switch a.Key {
 						case "src":
@@ -239,7 +257,11 @@ func ParseDescription(dscr devianter.Text) string {
 						}
 						if title != "" {
 							for x := -1; x < b; x++ {
-								parseddescription.WriteString("<img src=\"" + uri + "\" title=\"" + title + "\">")
+								parseddescription.WriteString(`<img src="`)
+								parseddescription.WriteString(uri)
+								parseddescription.WriteString(`" title="`)
+								parseddescription.WriteString(title)
+								parseddescription.WriteString(`">`)
 							}
 						}
 					}
