@@ -22,6 +22,7 @@
                     <option value="gallery">Gallery</option>
                     <option value="all">All</option>
                     <option value="tag">Tag</option>
+                    <option value="r">Groups</option>
                 </select>
                 <button type="submit">Search!</button>
             </form> <h1>| {{.Templates.GroupUser.GR.Owner.Username}}</h1>
@@ -57,7 +58,7 @@
 
             {{if ne .Templates.GroupUser.Admins ""}}
             <h3 id="admins"><a href="#admins">#</a> Group admins</h3>
-            <div class="admins">
+            <div class="plates admins">
             {{.Templates.GroupUser.Admins}}
             </div>
             {{end}}

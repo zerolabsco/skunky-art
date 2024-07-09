@@ -82,7 +82,7 @@ form input, button, select {
     border: 3px solid #4d27d6;
     transition: 400ms;
 }
-.block img, .admins .admin img{
+.block img, .plates .user-plate img{
     width: 100%;
 }
 .block p {
@@ -103,16 +103,20 @@ form input, button, select {
     background-color: #060820;
     border: 3px solid #060820;
 }
-.admins {
+.plates {
     display: flex
 }
-.admins .admin {
-    margin-left: 1%;
+.admins .user-plate {
+    width: 5%;
     background-color: #011522;
+}
+.plates .user-plate {
+    margin-left: 1%;
+    background-color: #091f19;
     padding: 3px;
     word-break: break-all;
     text-align: center;
-    width: 5%;
+    max-width: 15%;
 }
 
 @media screen and (orientation: portrait) {

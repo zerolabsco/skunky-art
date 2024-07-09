@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"git.macaw.me/skunky/devianter"
+	"golang.org/x/net/html"
 )
 
 var wr = io.WriteString
@@ -131,13 +132,7 @@ func (s skunkyart) GRUser() {
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
-					htm.WriteString(`<div class="admin"><img src="`)
-					htm.WriteString(UrlBuilder("media", "emojitar", z.User.Username, "?type=a"))
-					htm.WriteString(`"><a href="`)
-					htm.WriteString(UrlBuilder("group_user", "?type=about&q=", z.User.Username))
-					htm.WriteString(`">`)
-					htm.WriteString(z.User.Username)
-					htm.WriteString(`</a></div>`)
+					htm.WriteString(BuildUserPlate(z.User.Username))
 				}
 				group.Admins += htm.String()
 			}
@@ -270,15 +265,62 @@ func (s skunkyart) Search() {
 		ss.Content, e = devianter.SearchFunc(s.Query, s.Page, s.Type)
 	case 'g':
 		ss.Content, e = devianter.SearchFunc(s.Query, s.Page, s.Type, s.Args.Get("usr"))
+	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
+		var (
+			usernames = make(map[int]string)
+			url       strings.Builder
+			num       int
+		)
+
+		s.Page++
+
+		url.WriteString("https://www.deviantart.com/groups/?q=")
+		url.WriteString(s.Query)
+		if s.Page > 1 {
+			url.WriteString("&offset=")
+			url.WriteString(strconv.Itoa(10 * s.Page))
+		}
+
+		r, err := http.Get(url.String())
+		if err != nil {
+			s.ReturnHTTPError(502)
+		}
+		defer r.Body.Close()
+
+		for z := html.NewTokenizer(r.Body); ; {
+			if n, token := z.Next(), z.Token(); n == html.StartTagToken && token.Data == "a" {
+				for _, x := range token.Attr {
+					if x.Key == "class" && x.Val == "u regular username" {
+						usernames[num] = tagval(z)
+						num++
+					}
+				}
+			} else if n == 0 {
+				break
+			} else {
+				continue
+			}
+		}
+
+		if l := len(usernames); l != 0 {
+			ss.List += `<div class="content plates">`
+			for x := 0; x < len(usernames); x++ {
+				ss.List += BuildUserPlate(usernames[x])
+			}
+			ss.List += `</div>`
+			ss.List += s.NavBase(dlist{})
+		}
 	default:
 		s.ReturnHTTPError(400)
 	}
 	err(e)
 
-	ss.List = s.DeviationList(ss.Content.Results, dlist{
-		Pages: ss.Content.Pages,
-		More:  ss.Content.HasMore,
-	})
+	if s.Type != 'r' {
+		ss.List = s.DeviationList(ss.Content.Results, dlist{
+			Pages: ss.Content.Pages,
+			More:  ss.Content.HasMore,
+		})
+	}
 
 	s.ExecuteTemplate("html/search.htm", &s)
 }

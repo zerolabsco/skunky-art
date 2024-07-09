@@ -66,10 +66,33 @@ func (s skunkyart) ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
 	return
 }
 
+func BuildUserPlate(name string) string {
+	var htm strings.Builder
+	htm.WriteString(`<div class="user-plate"><img src="`)
+	htm.WriteString(UrlBuilder("media", "emojitar", name, "?type=a"))
+	htm.WriteString(`"><a href="`)
+	htm.WriteString(UrlBuilder("group_user", "?type=about&q=", name))
+	htm.WriteString(`">`)
+	htm.WriteString(name)
+	htm.WriteString(`</a></div>`)
+	return htm.String()
+}
+
 type text struct {
 	TXT  string
 	from int
 	to   int
+}
+
+func tagval(t *html.Tokenizer) string {
+	for tt := t.Next(); ; {
+		switch tt {
+		default:
+			return ""
+		case html.TextToken:
+			return string(t.Text())
+		}
+	}
 }
 
 func ParseDescription(dscr devianter.Text) string {
@@ -182,20 +205,7 @@ func ParseDescription(dscr devianter.Text) string {
 			}
 		}
 	} else if dl != 0 {
-		tagval := func(t *html.Tokenizer) string {
-			for {
-				tt := t.Next()
-				switch tt {
-				case html.ErrorToken:
-					return ""
-				case html.TextToken:
-					return string(t.Text())
-				}
-			}
-		}
-
-		tt := html.NewTokenizer(strings.NewReader(dscr.Html.Markup))
-		for {
+		for tt := html.NewTokenizer(strings.NewReader(dscr.Html.Markup)); ; {
 			t := tt.Next()
 			switch t {
 			case html.ErrorToken:
@@ -314,7 +324,7 @@ func (s skunkyart) NavBase(c dlist) string {
 	}
 
 	// вперёд-назад
-	if c.More {
+	if p != 417 || c.More {
 		prevrev("| Next =>", p+1, false)
 	}
 
