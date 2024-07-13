@@ -40,9 +40,14 @@ var CFG = config{
 
 func ExecuteConfig() {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				recover()
+			}
+		}()
 		for {
 			Templates["instances.json"] = string(Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body)
-			time.Sleep(1 * time.Hour)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
