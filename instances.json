@@ -1,14 +1,49 @@
 {
-    "instances": [{
-        "urls": [{
-            "i2p": "http://skunky.i2p/art",
-            "tor": "http://skunky0wjkf8j8ajofgh98aOZjhu8f.onion/art",
-            "ygg": "http://[324:71e:281a:9ed3::fa11]/skunkyart",
-            "clearnet": "https://skunky.net/art"
-        }],
-        "settings": {
-            "nsfw": true,
-            "proxy": true
+    "instances": [
+        {
+            "title": "skunky.ebloid.ru",
+            "country": "Russia",
+            "urls": [{
+                "ygg": "http://[201:eba5:d1fc:bf7b:cfcb:a811:4b8b:7ea3]/art",
+                "clearnet": "https://skunky.ebloid.ru/art"
+            }],
+            "settings": {
+                "nsfw": false,
+                "proxy": false
+            }
+        },
+        {
+            "title": "clovius.club",
+            "country": "Sweden",
+            "urls": [{
+                "clearnet": "https://skunky.clovius.club"
+            }],
+            "settings": {
+                "nsfw": true,
+                "proxy": true
+            }
+        },
+        {
+            "title": "bloat.cat",
+            "country": "Romania",
+            "urls": [{
+                "clearnet": "https://skunky.bloat.cat"
+            }],
+            "settings": {
+                "nsfw": true,
+                "proxy": true
+            }
+        },
+        {
+            "title": "frontendfriendly.xyz",
+            "country": "Finland",
+            "urls": [{
+                "clearnet": "https://skunkyart.frontendfriendly.xyz"
+            }],
+            "settings": {
+                "nsfw": true,
+                "proxy": true
+            }
         }
-    }]
+    ]
 }

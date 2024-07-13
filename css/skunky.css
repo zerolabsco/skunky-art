@@ -1,5 +1,6 @@
+/* TAGS */
 html {
-    font-family: ubuntu;
+    font-family: Ubuntu;
     background-color:black;
     color: rgb(234, 216, 216);
 }
@@ -8,7 +9,7 @@ a {
     color: cadetblue;
 }
 a:hover {
-    color: yellow;
+    color: #d0ff00;
     transition: 400ms;
 }
 header h1 {
@@ -28,37 +29,8 @@ form input, button, select {
     border: 0px;
     border-radius: 1px;
 }
-.nsfw, .about-false {
-    color: red;
-}
-.about-true {
-    color: green;
-}
-.author {
-    color: seagreen;
-}
-.msg {
-    background-color: #091f19;
-    color: whitesmoke;
-    width: fit-content;
-    max-width: 90%;
-    padding: 4px;
-    border-radius: 2px;
-    margin-top: 6px;
-    text-wrap: pretty;
-    transition: 350ms;
-}
-.msg:hover {
-    background-color: #134134;
-}
-.reply {
-    border-radius: 0px 2px 2px 0px;
-    border-left: #258268 solid;
-    margin-left: 40px;
-}
-.dd {
-    color: rgb(160, 0, 147);
-}
+
+/* BLOCKS */
 .content {
     align-items: center;
     border-radius: 3px;
@@ -82,12 +54,59 @@ form input, button, select {
     border: 3px solid #4d27d6;
     transition: 400ms;
 }
-.block img, .plates .user-plate img{
+.block img, .plates .user-plate img {
     width: 100%;
 }
 .block p {
     word-break: break-all;
 }
+
+/* MESSAGES */
+.msg {
+    background-color: #091f19;
+    color: whitesmoke;
+    width: fit-content;
+    max-width: 90%;
+    padding: 4px;
+    border-radius: 2px;
+    margin-top: 6px;
+    text-wrap: pretty;
+    transition: 350ms;
+}
+.msg:hover {
+    background-color: #134134;
+}
+.reply {
+    border-radius: 0px 2px 2px 0px;
+    border-left: #258268 solid;
+    margin-left: 40px;
+}
+
+/* FOLDER & PLATES */
+.folders, .plates {
+    display: flex;
+    flex-wrap: wrap;
+}
+.folder-item {
+    background-color: #060820;
+    border: 3px solid #060820;
+    width: 10%
+}
+.admins .user-plate {
+    width: 5%;
+    background-color: #011522;
+}
+.plates .user-plate {
+    margin-left: 1%;
+    margin-bottom: 1%;
+    background-color: #091f19;
+    padding: 3px;
+    word-break: break-all;
+    text-align: center;
+    max-width: 15%;
+}
+
+/* USER/GROUP BACKGROUNDS */
 .ubg {
     display: flex;
     flex-wrap: wrap;
@@ -96,29 +115,22 @@ form input, button, select {
 .ubg img {
     width: 20%;
 }
-.folders {
-    display: flex
+
+/* COLORS */
+.nsfw, .about-false {
+    color: red;
 }
-.folder-item {
-    background-color: #060820;
-    border: 3px solid #060820;
+.about-true {
+    color: green;
 }
-.plates {
-    display: flex
+.author {
+    color: seagreen;
 }
-.admins .user-plate {
-    width: 5%;
-    background-color: #011522;
-}
-.plates .user-plate {
-    margin-left: 1%;
-    background-color: #091f19;
-    padding: 3px;
-    word-break: break-all;
-    text-align: center;
-    max-width: 15%;
+.dd {
+    color: rgb(160, 0, 147);
 }
 
+/* SCREEN OPTIMISATIONS */
 @media screen and (orientation: portrait) {
     header {
         scale: 155%;

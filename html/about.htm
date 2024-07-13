@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>SkunkyArt</title>
-        <link rel="stylesheet" href="{{.BasePath}}gui/css/skunky.css">
+        <link rel="stylesheet" href="{{.BasePath}}stylesheet">
     </head>
     <main>
         <header>
@@ -20,10 +20,43 @@
         <p>
             SkunkyArt is an alternative frontend for deviantart.com, written in Go.
         </p>
+        <h3><a href="https://go.kde.org/matrix/#/#skunkyart:ebloid.ru" target="_blank">Room in Matrix</a></h3>
         <h2>Instance settings:</h2>
         <ul>
             <li><b>NSFW</b>: <span class="about-{{.Templates.About.Nsfw}}">{{if .Templates.About.Nsfw}}YES{{else}}NO{{end}}</span></li>
             <li><b>Proxyfing</b>: <span class="about-{{.Templates.About.Proxy}}">{{if .Templates.About.Proxy}}YES{{else}}NO{{end}}</span></li>
+        </ul>
+        <h2>Instances:</h2>
+        <ul>
+            {{range .Templates.About.Instances}}
+            <li><u><b>{{.Title}}</b></u>:
+                <ul>
+                    <li><b>Country</b>: {{.Country}}</li>
+                    <li><b>URLs</b>: </li>
+                    <ul>
+                    {{range .Urls}}
+                        {{if ne .I2P ""}}
+                        <li><b>I2P</b>: <a href="{{.I2P}}">Yes</a></li>
+                        {{end}}
+                        {{if ne .Ygg ""}}
+                        <li><b>Ygg</b>: <a href="{{.Ygg}}">Yes</a></li>
+                        {{end}}
+                        {{if ne .Tor ""}}
+                        <li><b>Tor</b>: <a href="{{.Tor}}">Yes</a></li>
+                        {{end}}
+                        {{if ne .Clearnet ""}}
+                        <li><b>Clearnet</b>: <a href="{{.Clearnet}}">{{.Clearnet}}</a></li>
+                        {{end}}
+                    {{end}}
+                    </ul>
+                    <li><b>Settings</b>: </li>
+                    <ul>
+                        <li><b>NSFW</b>: <span class="about-{{.Settings.Nsfw}}">{{if .Settings.Nsfw}}YES{{else}}NO{{end}}</span></li>
+                        <li><b>Proxyfing</b>: <span class="about-{{.Settings.Proxy}}">{{if .Settings.Proxy}}YES{{else}}NO{{end}}</span></li>
+                    </ul>
+                </ul>
+            </li>
+            {{end}}
         </ul>
         <p>Copyright <a href="https://go.kde.org/matrix/#/@softpigeones:ebloid.ru" target="_blank">lost+skunk</a>, X11. <a href="https://git.macaw.me/skunky/skunkyart/src/tag/v1.3" target="_blank">SkunkyArt v1.3</a></p>
     </main>

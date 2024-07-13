@@ -8,8 +8,11 @@
         "max-size": 100000,
         "update-interval": 5
     },
-    "templates-dir": "html",
-    "wixmp-proxy": "http://127.0.0.1:8080",
+    "dirs-to-memory": [
+        "html",
+        "css"
+    ],
+    "download-proxy": "",
     "proxy": true,
-    "nsfw": true
+    "nsfw": false
 }

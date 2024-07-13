@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,17 +18,33 @@ var wr = io.WriteString
 var Templates = make(map[string]string)
 
 type skunkyart struct {
-	Writer          http.ResponseWriter
+	Writer http.ResponseWriter
+
 	Args            url.Values
 	BasePath        string
 	Type            rune
 	Query, QueryRaw string
 	Page            int
 	Atom            bool
-	Templates       struct {
+
+	Templates struct {
 		About struct {
-			Proxy bool
-			Nsfw  bool
+			Proxy     bool
+			Nsfw      bool
+			Instances []struct {
+				Title   string
+				Country string
+				Urls    []struct {
+					I2P      string `json:"i2p"`
+					Ygg      string
+					Tor      string
+					Clearnet string
+				}
+				Settings struct {
+					Nsfw  bool
+					Proxy bool
+				}
+			}
 		}
 
 		SomeList  string
@@ -127,7 +144,7 @@ func (s skunkyart) GRUser() {
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
-				group.About.BGMeta.Url = s.ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
+				group.About.BGMeta.Url = ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
 				group.About.BG = ParseMedia(group.About.BGMeta.Media)
 			case "group_admins":
 				var htm strings.Builder
@@ -146,7 +163,7 @@ func (s skunkyart) GRUser() {
 
 		gallery := g.Gallery(s.Page, folderid)
 		if folderid > 0 {
-			group.Gallery.List = s.DeviationList(gallery.Content.Results, dlist{
+			group.Gallery.List = s.DeviationList(gallery.Content.Results, DeviationList{
 				More: gallery.Content.HasMore,
 			})
 		} else {
@@ -157,13 +174,18 @@ func (s skunkyart) GRUser() {
 					for _, x := range x.ModuleData.Folders.Results {
 						folders.WriteString(`<div class="block folder-item">`)
 
-						folders.WriteString(`<a href="`)
-						folders.WriteString(s.ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
-						folders.WriteString(`"><img loading="lazy" src="`)
-						folders.WriteString(ParseMedia(x.Thumb.Media))
-						folders.WriteString(`" title="`)
-						folders.WriteString(x.Thumb.Title)
-						folders.WriteString(`"></a><br>`)
+						if !(x.Thumb.NSFW && !CFG.Nsfw) {
+							folders.WriteString(`<a href="`)
+							folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
+							folders.WriteString(`"><img loading="lazy" src="`)
+							folders.WriteString(ParseMedia(x.Thumb.Media))
+							folders.WriteString(`" title="`)
+							folders.WriteString(x.Thumb.Title)
+							folders.WriteString(`"></a>`)
+						} else {
+							folders.WriteString(`<h1>[ <span class="nsfw">NSFW</span> ]</h1>`)
+						}
+						folders.WriteString("<br>")
 
 						folders.WriteString(`<a href="?folder=`)
 						folders.WriteString(strconv.Itoa(x.FolderId))
@@ -182,7 +204,7 @@ func (s skunkyart) GRUser() {
 				}
 
 				if x.Name == "folder_deviations" {
-					group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, dlist{
+					group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, DeviationList{
 						Pages: x.ModuleData.Folder.Pages,
 						More:  x.ModuleData.Folder.HasMore,
 					})
@@ -217,7 +239,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
 		for _, x := range post.Post.Deviation.Extended.RelatedContent {
 			if len(x.Deviations) != 0 {
-				post.Related = s.DeviationList(x.Deviations)
+				post.Related += s.DeviationList(x.Deviations)
 			}
 		}
 
@@ -247,7 +269,7 @@ func (s skunkyart) Deviation(author, postname string) {
 
 func (s skunkyart) DD() {
 	dd := devianter.DailyDeviationsFunc(s.Page)
-	s.Templates.SomeList = s.DeviationList(dd.Deviations, dlist{
+	s.Templates.SomeList = s.DeviationList(dd.Deviations, DeviationList{
 		Pages: 0,
 		More:  dd.HasMore,
 	})
@@ -281,17 +303,13 @@ func (s skunkyart) Search() {
 			url.WriteString(strconv.Itoa(10 * s.Page))
 		}
 
-		r, err := http.Get(url.String())
-		if err != nil {
-			s.ReturnHTTPError(502)
-		}
-		defer r.Body.Close()
+		dwnld := Download(url.String())
 
-		for z := html.NewTokenizer(r.Body); ; {
+		for z := html.NewTokenizer(strings.NewReader(string(dwnld.Body))); ; {
 			if n, token := z.Next(), z.Token(); n == html.StartTagToken && token.Data == "a" {
 				for _, x := range token.Attr {
 					if x.Key == "class" && x.Val == "u regular username" {
-						usernames[num] = tagval(z)
+						usernames[num] = GetValueOfTag(z)
 						num++
 					}
 				}
@@ -308,15 +326,17 @@ func (s skunkyart) Search() {
 				ss.List += BuildUserPlate(usernames[x])
 			}
 			ss.List += `</div>`
-			ss.List += s.NavBase(dlist{})
+			ss.List += s.NavBase(DeviationList{
+				More: true,
+			})
 		}
 	default:
 		s.ReturnHTTPError(400)
 	}
-	err(e)
+	try(e)
 
 	if s.Type != 'r' {
-		ss.List = s.DeviationList(ss.Content.Results, dlist{
+		ss.List = s.DeviationList(ss.Content.Results, DeviationList{
 			Pages: ss.Content.Pages,
 			More:  ss.Content.HasMore,
 		})
@@ -340,5 +360,6 @@ func (s skunkyart) Emojitar(name string) {
 func (s skunkyart) About() {
 	s.Templates.About.Nsfw = CFG.Nsfw
 	s.Templates.About.Proxy = CFG.Proxy
+	try(json.Unmarshal([]byte(Templates["instances.json"]), &s.Templates.About))
 	s.ExecuteTemplate("html/about.htm", &s)
 }

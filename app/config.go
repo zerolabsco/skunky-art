@@ -2,8 +2,8 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
+	"time"
 )
 
 type cache_config struct {
@@ -15,13 +15,13 @@ type cache_config struct {
 }
 
 type config struct {
-	cfg          string
-	Listen       string
-	BasePath     string `json:"base-path"`
-	Cache        cache_config
-	Proxy, Nsfw  bool
-	WixmpProxy   string `json:"wixmp-proxy"`
-	TemplatesDir string `json:"templates-dir"`
+	cfg           string
+	Listen        string
+	BasePath      string `json:"base-path"`
+	Cache         cache_config
+	Proxy, Nsfw   bool
+	DownloadProxy string   `json:"download-proxy"`
+	Dirs          []string `json:"dirs-to-memory"`
 }
 
 var CFG = config{
@@ -33,51 +33,52 @@ var CFG = config{
 		Path:           "cache",
 		UpdateInterval: 1,
 	},
-	TemplatesDir: "html",
-	Proxy:        true,
-	Nsfw:         true,
+	Dirs:  []string{"html", "css"},
+	Proxy: true,
+	Nsfw:  true,
 }
 
 func ExecuteConfig() {
-	try := func(err error, exitcode int) {
-		if err != nil {
-			println(err.Error())
-			os.Exit(exitcode)
+	go func() {
+		for {
+			Templates["instances.json"] = string(Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body)
+			time.Sleep(1 * time.Hour)
 		}
-	}
+	}()
 
-	a := os.Args
-	if l := len(a); l > 1 {
-		switch a[1] {
-		case "-c", "--config":
-			if l >= 3 {
-				CFG.cfg = a[2]
-			} else {
-				try(errors.New("Not enought arguments"), 1)
-			}
-		case "-h", "--help":
-			try(errors.New(`SkunkyArt v1.3 [refactoring]
+	const helpmsg = `SkunkyArt v1.3 [refactoring]
 Usage:
 	- [-c|--config] - path to config
 	- [-h|--help]	- returns this message
 Example:
 	./skunkyart -c config.json
-Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3`), 0)
-		default:
-			try(errors.New("Unreconginzed argument: "+a[1]), 1)
+Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3`
+
+	a := os.Args
+	for n, x := range a {
+		switch x {
+		case "-c", "--config":
+			if len(a) >= 3 {
+				CFG.cfg = a[n+1]
+			} else {
+				exit("Not enought arguments", 1)
+			}
+		case "-h", "--help":
+			exit(helpmsg, 0)
 		}
-		if CFG.cfg != "" {
-			f, err := os.ReadFile(CFG.cfg)
-			try(err, 1)
+	}
 
-			try(json.Unmarshal(f, &CFG), 1)
-			if CFG.Cache.Enabled && !CFG.Proxy {
-				try(errors.New("Incompatible settings detected: cannot use caching media content without proxy"), 1)
-			}
+	if CFG.cfg != "" {
+		f, err := os.ReadFile(CFG.cfg)
+		try_with_exitstatus(err, 1)
 
-			if CFG.Cache.MaxSize != 0 || CFG.Cache.Lifetime != 0 {
-				go InitCacheSystem()
-			}
+		try_with_exitstatus(json.Unmarshal(f, &CFG), 1)
+		if CFG.Cache.Enabled && !CFG.Proxy {
+			exit("Incompatible settings detected: cannot use caching media content without proxy", 1)
+		}
+
+		if CFG.Cache.MaxSize != 0 || CFG.Cache.Lifetime != 0 {
+			go InitCacheSystem()
 		}
 	}
 }

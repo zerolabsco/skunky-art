@@ -4,10 +4,11 @@ import (
 	"io"
 	"net/http"
 	u "net/url"
-	"os"
 	"strconv"
 	"strings"
 )
+
+var Host string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
@@ -43,18 +44,18 @@ func Router() {
 
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
-		path := parsepath(r.URL.Path)
-		var wr = io.WriteString
-		open_n_send := func(name string) {
-			f, e := os.ReadFile(name)
-			err(e)
-			wr(w, string(f))
+		if h := r.Header["Scheme"]; len(h) != 0 && h[0] == "https" {
+			Host = h[0] + "://" + r.Host
+		} else {
+			Host = "http://" + r.Host
 		}
+
+		path := parsepath(r.URL.Path)
 
 		// структура с функциями
 		var skunky skunkyart
-		skunky.Args = r.URL.Query()
 		skunky.Writer = w
+		skunky.Args = r.URL.Query()
 		skunky.BasePath = CFG.BasePath
 
 		arg := skunky.Args.Get
@@ -95,18 +96,12 @@ func Router() {
 			}
 		case "about":
 			skunky.About()
-		case "gui":
+		case "stylesheet":
 			w.Header().Add("content-type", "text/css")
-			open_n_send(next(path, 2))
+			io.WriteString(w, Templates["css/skunky.css"])
 		}
 	}
 
 	http.HandleFunc("/", handle)
 	http.ListenAndServe(CFG.Listen, nil)
-}
-
-func err(e error) {
-	if e != nil {
-		println(e.Error())
-	}
 }
