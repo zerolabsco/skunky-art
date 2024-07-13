@@ -1,4 +1,4 @@
-[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)]("https://go.kde.org/matrix/#/#skunkyart:ebloid.ru")
+[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:ebloid.ru)
 # Instances
 |Инстанс|Yggdrasil|I2P|Tor|NSFW|Proxifying|Country|
 |:-----:|:-------:|:-:|:-:|:--:|:--------:|:-----:|
