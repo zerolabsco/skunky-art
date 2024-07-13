@@ -29,6 +29,7 @@ server {
     
     location ((BASE URL)) { # if you have a separate subdomain for the frontend, insert '/' instead of '((BASE URL))'.
         proxy_set_header Scheme $scheme;
+        proxy_set_header Host $host;
         proxy_http_version 1.1;
         proxy_pass http://((IP)):((PORT));
     }
@@ -63,6 +64,7 @@ server {
     
     location ((BASE URL)) { # если у вас отдельный поддомен для фронтенда, вместо '((BASE URL))' вставляйте '/'
         proxy_set_header Scheme $scheme;
+        proxy_set_header Host $host;
         proxy_http_version 1.1;
         proxy_pass http://((IP)):((PORT));
     }

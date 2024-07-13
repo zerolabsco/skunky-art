@@ -112,7 +112,6 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 	url.WriteString(s.Args.Get("token"))
 
 	if CFG.Cache.Enabled {
-		os.Mkdir(CFG.Cache.Path, 0700)
 		fname := CFG.Cache.Path + "/" + base64.StdEncoding.EncodeToString([]byte(subdomain+path))
 		file, e := os.Open(fname)
 
@@ -138,6 +137,7 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 
 func InitCacheSystem() {
 	c := &CFG.Cache
+	os.Mkdir(CFG.Cache.Path, 0700)
 	for {
 		dir, e := os.Open(c.Path)
 		try(e)
@@ -175,10 +175,9 @@ func CopyTemplatesToMemory() {
 		try_with_exitstatus(e, 1)
 
 		for _, x := range dir {
-			n := dirname + "/" + x.Name()
-			file, e := os.ReadFile(n)
+			file, e := os.ReadFile(dirname + "/" + x.Name())
 			try_with_exitstatus(e, 1)
-			Templates[n] = string(file)
+			Templates[x.Name()] = string(file)
 		}
 	}
 }

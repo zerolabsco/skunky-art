@@ -51,7 +51,6 @@ func Router() {
 		}
 
 		path := parsepath(r.URL.Path)
-
 		// структура с функциями
 		var skunky skunkyart
 		skunky.Writer = w
@@ -77,7 +76,7 @@ func Router() {
 		default:
 			skunky.ReturnHTTPError(404)
 		case "":
-			skunky.ExecuteTemplate("html/index.htm", &CFG.BasePath)
+			skunky.ExecuteTemplate("index.htm", &CFG.BasePath)
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -98,10 +97,10 @@ func Router() {
 			skunky.About()
 		case "stylesheet":
 			w.Header().Add("content-type", "text/css")
-			io.WriteString(w, Templates["css/skunky.css"])
+			io.WriteString(w, Templates["skunky.css"])
 		}
 	}
 
 	http.HandleFunc("/", handle)
-	http.ListenAndServe(CFG.Listen, nil)
+	try_with_exitstatus(http.ListenAndServe(CFG.Listen, nil), 1)
 }

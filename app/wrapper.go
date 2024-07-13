@@ -216,7 +216,7 @@ func (s skunkyart) GRUser() {
 	}
 
 	if !s.Atom {
-		s.ExecuteTemplate("html/gruser.htm", &s)
+		s.ExecuteTemplate("gruser.htm", &s)
 	}
 }
 
@@ -261,7 +261,7 @@ func (s skunkyart) Deviation(author, postname string) {
 
 		post.Comments = s.ParseComments(devianter.CommentsFunc(id, post.Post.Comments.Cursor, s.Page, 1))
 
-		s.ExecuteTemplate("html/deviantion.htm", &s)
+		s.ExecuteTemplate("deviantion.htm", &s)
 	} else {
 		s.ReturnHTTPError(400)
 	}
@@ -274,7 +274,7 @@ func (s skunkyart) DD() {
 		More:  dd.HasMore,
 	})
 	if !s.Atom {
-		s.ExecuteTemplate("html/list.htm", &s)
+		s.ExecuteTemplate("list.htm", &s)
 	}
 }
 
@@ -342,7 +342,7 @@ func (s skunkyart) Search() {
 		})
 	}
 
-	s.ExecuteTemplate("html/search.htm", &s)
+	s.ExecuteTemplate("search.htm", &s)
 }
 
 func (s skunkyart) Emojitar(name string) {
@@ -361,5 +361,5 @@ func (s skunkyart) About() {
 	s.Templates.About.Nsfw = CFG.Nsfw
 	s.Templates.About.Proxy = CFG.Proxy
 	try(json.Unmarshal([]byte(Templates["instances.json"]), &s.Templates.About))
-	s.ExecuteTemplate("html/about.htm", &s)
+	s.ExecuteTemplate("about.htm", &s)
 }

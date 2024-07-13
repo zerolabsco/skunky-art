@@ -3,16 +3,16 @@
     "base-path": "/",
     "cache": {
         "enabled": true,
-        "path": "cache",
+        "path": "/home/skunk/projects/skunkyart/cache",
         "lifetime": null,
         "max-size": 100000,
         "update-interval": 5
     },
     "dirs-to-memory": [
-        "html",
-        "css"
+        "/home/skunk/projects/skunkyart/html",
+        "/home/skunk/projects/skunkyart/css"
     ],
-    "download-proxy": "",
+    "download-proxy": null,
     "proxy": true,
     "nsfw": false
 }
