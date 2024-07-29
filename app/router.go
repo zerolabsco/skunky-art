@@ -1,7 +1,6 @@
 package app
 
 import (
-	"io"
 	"net/http"
 	u "net/url"
 	"strconv"
@@ -44,7 +43,7 @@ func Router() {
 
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
-		if h := r.Header["Scheme"]; len(h) != 0 && h[0] == "https" {
+		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
 			Host = h[0] + "://" + r.Host
 		} else {
 			Host = "http://" + r.Host
@@ -97,10 +96,14 @@ func Router() {
 			skunky.About()
 		case "stylesheet":
 			w.Header().Add("content-type", "text/css")
-			io.WriteString(w, Templates["skunky.css"])
+			wr(w, Templates["skunky.css"])
+		case "favicon.ico":
+			wr(w, Templates["logo.png"])
 		}
 	}
 
 	http.HandleFunc("/", handle)
-	try_with_exitstatus(http.ListenAndServe(CFG.Listen, nil), 1)
+	println("SkunkyArt is listening on", CFG.Listen)
+
+	tryWithExitStatus(http.ListenAndServe(CFG.Listen, nil), 1)
 }

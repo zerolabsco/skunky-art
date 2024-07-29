@@ -48,6 +48,7 @@ type skunkyart struct {
 		}
 
 		SomeList  string
+		DDStrips  string
 		Deviation struct {
 			Post       devianter.Post
 			Related    string
@@ -93,7 +94,10 @@ func (s skunkyart) GRUser() {
 
 	var g devianter.Group
 	g.Name = s.Query
-	s.Templates.GroupUser.GR = g.GroupFunc()
+	var err error
+	s.Templates.GroupUser.GR, err = g.GetGroup()
+	try(err)
+
 	group := &s.Templates.GroupUser
 
 	switch s.Type {
@@ -135,7 +139,7 @@ func (s skunkyart) GRUser() {
 						group.About.Interests += interest.String()
 					}
 				}
-				group.About.Comments = s.ParseComments(devianter.CommentsFunc(
+				group.About.Comments = s.ParseComments(devianter.GetComments(
 					strconv.Itoa(group.GR.Gruser.ID),
 					"",
 					s.Page,
@@ -161,9 +165,11 @@ func (s skunkyart) GRUser() {
 			s.Page++
 		}
 
-		gallery := g.Gallery(s.Page, folderid)
+		gallery, err := g.GetGallery(s.Page, folderid)
+		try(err)
+
 		if folderid > 0 {
-			group.Gallery.List = s.DeviationList(gallery.Content.Results, DeviationList{
+			group.Gallery.List = s.DeviationList(gallery.Content.Results, true, DeviationList{
 				More: gallery.Content.HasMore,
 			})
 		} else {
@@ -204,7 +210,7 @@ func (s skunkyart) GRUser() {
 				}
 
 				if x.Name == "folder_deviations" {
-					group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, DeviationList{
+					group.Gallery.List = s.DeviationList(x.ModuleData.Folder.Deviations, true, DeviationList{
 						Pages: x.ModuleData.Folder.Pages,
 						More:  x.ModuleData.Folder.HasMore,
 					})
@@ -227,7 +233,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		post := &s.Templates.Deviation
 
 		id := id_search[len(id_search)-1]
-		post.Post = devianter.DeviationFunc(id, author)
+		post.Post = devianter.GetDeviation(id, author)
 
 		if post.Post.Deviation.TextContent.Excerpt != "" {
 			post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
@@ -239,7 +245,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
 		for _, x := range post.Post.Deviation.Extended.RelatedContent {
 			if len(x.Deviations) != 0 {
-				post.Related += s.DeviationList(x.Deviations)
+				post.Related += s.DeviationList(x.Deviations, false)
 			}
 		}
 
@@ -259,7 +265,7 @@ func (s skunkyart) Deviation(author, postname string) {
 			post.Post.Comments.Cursor = ""
 		}
 
-		post.Comments = s.ParseComments(devianter.CommentsFunc(id, post.Post.Comments.Cursor, s.Page, 1))
+		post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
 
 		s.ExecuteTemplate("deviantion.htm", &s)
 	} else {
@@ -268,25 +274,38 @@ func (s skunkyart) Deviation(author, postname string) {
 }
 
 func (s skunkyart) DD() {
-	dd := devianter.DailyDeviationsFunc(s.Page)
-	s.Templates.SomeList = s.DeviationList(dd.Deviations, DeviationList{
+	dd := devianter.GetDailyDeviations(s.Page)
+	var strips strings.Builder
+	for _, x := range dd.Strips {
+		strips.WriteString(`<h3 class="`)
+		strips.WriteString(x.Codename)
+		strips.WriteString(`"> <a href="#`)
+		strips.WriteString(x.Codename)
+		strips.WriteString(`"># </a>`)
+		strips.WriteString(x.Title)
+		strips.WriteString(`</h3>`)
+
+		strips.WriteString(s.DeviationList(x.Deviations, false))
+	}
+	s.Templates.DDStrips = strips.String()
+	s.Templates.SomeList = s.DeviationList(dd.Deviations, true, DeviationList{
 		Pages: 0,
 		More:  dd.HasMore,
 	})
 	if !s.Atom {
-		s.ExecuteTemplate("list.htm", &s)
+		s.ExecuteTemplate("daily.htm", &s)
 	}
 }
 
 func (s skunkyart) Search() {
 	s.Atom = false
-	var e error
+	var err error
 	ss := &s.Templates.Search
 	switch s.Type {
 	case 'a', 't':
-		ss.Content, e = devianter.SearchFunc(s.Query, s.Page, s.Type)
+		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type)
 	case 'g':
-		ss.Content, e = devianter.SearchFunc(s.Query, s.Page, s.Type, s.Args.Get("usr"))
+		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
 	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
 		var (
 			usernames = make(map[int]string)
@@ -333,10 +352,10 @@ func (s skunkyart) Search() {
 	default:
 		s.ReturnHTTPError(400)
 	}
-	try(e)
+	try(err)
 
 	if s.Type != 'r' {
-		ss.List = s.DeviationList(ss.Content.Results, DeviationList{
+		ss.List = s.DeviationList(ss.Content.Results, false, DeviationList{
 			Pages: ss.Content.Pages,
 			More:  ss.Content.HasMore,
 		})

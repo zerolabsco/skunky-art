@@ -26,7 +26,7 @@ func try(e error) {
 		println(e.Error())
 	}
 }
-func try_with_exitstatus(err error, code int) {
+func tryWithExitStatus(err error, code int) {
 	if err != nil {
 		exit(err.Error(), code)
 	}
@@ -87,7 +87,7 @@ func Download(url string) (d Downloaded) {
 
 	req, e := http.NewRequest("GET", url, nil)
 	try(e)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0.0")
+	req.Header.Set("User-Agent", CFG.UserAgent)
 
 	resp, e := cli.Do(req)
 	try(e)
@@ -148,14 +148,14 @@ func InitCacheSystem() {
 		try(e)
 		for _, a := range dirnames {
 			a = c.Path + "/" + a
-			if c.Lifetime != 0 {
+			if c.Lifetime != "" {
 				now := time.Now().UnixMilli()
 
 				f, _ := os.Stat(a)
 				stat := f.Sys().(*syscall.Stat_t)
 				time := time.Unix(stat.Ctim.Unix()).UnixMilli()
 
-				if time+c.Lifetime <= now {
+				if time+lifetimeParsed <= now {
 					try(os.RemoveAll(a))
 				}
 			}
@@ -172,19 +172,19 @@ func InitCacheSystem() {
 func CopyTemplatesToMemory() {
 	for _, dirname := range CFG.Dirs {
 		dir, e := os.ReadDir(dirname)
-		try_with_exitstatus(e, 1)
+		tryWithExitStatus(e, 1)
 
 		for _, x := range dir {
 			file, e := os.ReadFile(dirname + "/" + x.Name())
-			try_with_exitstatus(e, 1)
+			tryWithExitStatus(e, 1)
 			Templates[x.Name()] = string(file)
 		}
 	}
 }
 
 /* PARSING HELPERS */
-func ParseMedia(media devianter.Media) string {
-	url := devianter.UrlFromMedia(media)
+func ParseMedia(media devianter.Media, thumb ...int) string {
+	url := devianter.UrlFromMedia(media, thumb...)
 	if len(url) != 0 && CFG.Proxy {
 		url = url[21:]
 		dot := strings.Index(url, ".")
@@ -197,9 +197,10 @@ func ParseMedia(media devianter.Media) string {
 func ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
 	if len(url) > 32 && url[27:32] != "stash" {
 		url = url[27:]
-		toart := strings.Index(url, "/art/")
-		if toart != -1 {
-			output = UrlBuilder("post", url[:toart], url[toart+5:])
+		firstshash := strings.Index(url, "/")
+		lastshash := firstshash + strings.Index(url[firstshash+1:], "/")
+		if lastshash != -1 {
+			output = UrlBuilder("post", url[:firstshash], url[lastshash+2:])
 		}
 	}
 	return
@@ -236,13 +237,9 @@ type DeviationList struct {
 
 // FIXME: на некоротрых артах первая страница может вызывать полное отсутствие панели навигации.
 func (s skunkyart) NavBase(c DeviationList) string {
-	// TODO: сделать понятнее
-	// навигация по страницам
 	var list strings.Builder
-	list.WriteString("<br>")
-	p := s.Page
 
-	// функция для генерации ссылок
+	list.WriteString("<br>")
 	prevrev := func(msg string, page int, onpage bool) {
 		if !onpage {
 			list.WriteString(`<a href="?p=`)
@@ -268,33 +265,26 @@ func (s skunkyart) NavBase(c DeviationList) string {
 		}
 	}
 
-	// вперёд-назад
+	p := s.Page
+
 	if p > 1 {
 		prevrev("<= Prev |", p-1, false)
 	} else {
 		p = 1
 	}
 
-	if c.Pages > 0 {
-		// назад
-		for x := p - 6; x < p && x > 0; x++ {
-			prevrev(strconv.Itoa(x), x, false)
-		}
-
-		// вперёд
-		for x := p; x <= p+6 && c.Pages > p+6; x++ {
-			if x == p {
-				prevrev("", x, true)
-				x++
+	for i, x := p-6, 0; (i <= c.Pages && i <= p+6) && x < 12; i++ {
+		if i > 0 {
+			var onPage bool
+			if i == p {
+				onPage = true
 			}
 
-			if x > p {
-				prevrev(strconv.Itoa(x), x, false)
-			}
+			prevrev(strconv.Itoa(i), i, onPage)
+			x++
 		}
 	}
 
-	// вперёд-назад
 	if c.More {
 		prevrev("| Next =>", p+1, false)
 	}

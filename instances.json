@@ -44,6 +44,17 @@
                 "nsfw": true,
                 "proxy": true
             }
+        },
+        {
+            "title": "lumaeris.com",
+            "country": "US",
+            "urls": [{
+                "clearnet": "https://skunkyart.lumaeris.com"
+            }],
+            "settings": {
+                "nsfw": true,
+                "proxy": true
+            }
         }
     ]
 }

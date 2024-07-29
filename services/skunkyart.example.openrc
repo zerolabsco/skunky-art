@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+directory=<path_to_dir_with_skunkyart>
+# command_args="-c $directory/config.json" # if SA wasn't start, try to uncomment this line
+command=$directory/skunkyart
+
+name="SkunkyArt"
+description="Privacy frontend for deviantart.com"
+supervisor=supervise-daemon
+
+depend() {
+	need net
+}

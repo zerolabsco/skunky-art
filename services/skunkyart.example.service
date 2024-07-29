@@ -1,0 +1,11 @@
+# Note: i didn't use systemd, so it can be not works :)
+
+[Unit]
+Description=Privacy frontend for deviantart.com
+
+[Service]
+Directory=<path-to-dir-with-skunkyart>
+ExecStart=<path-to-dir-skunkyart>
+
+[Install]
+WantedBy=multi-user.target

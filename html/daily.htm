@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>SkunkyArt</title>
+        <title>SkunkyArt | Daily Deviations</title>
         <link rel="stylesheet" href="{{.BasePath}}stylesheet">
     </head>
     <main>
@@ -17,6 +17,11 @@
                 <button type="submit">Search!</button>
             </form>
         </header>
+        {{if ne .Templates.DDStrips ""}}
+        <h2 id="strips"><a href="#strips">#</a> Strips</h2>
+        {{.Templates.DDStrips}}
+        {{end}}
+        <h2 id="content"><a href="#content">#</a> Content</h2>
         {{.Templates.SomeList}}
     </main>
 </html>

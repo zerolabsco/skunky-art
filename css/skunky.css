@@ -131,28 +131,64 @@ form input, button, select {
 }
 
 /* SCREEN OPTIMISATIONS */
-@media screen and (orientation: portrait) {
-    header {
-        scale: 155%;
-        justify-content: center;
+@media (orientation: portrait) {
+    * {
+        font-size: 120%
     }
+    
+    ul {
+        font-size: 80%
+    }
+    
+    center form {
+        font-size: 60%
+    }
+    
+    header form {
+        font-size: 60%;
+    }
+    header, center {
+        text-align: center;
+        display: block;
+        clear: both;
+        font-size: 200%;
+    }
+    
     .content {
         margin: auto;
         display: inherit;
         scale: 100%;
     }
     .block {
-        max-width: 60%;
+        margin-top: 10%;
+        max-width: 200%;
+    }
+    .folder-item {
+        width: 25%
+    }
+    .folders {
+        display: flexbox;
+        justify-content: center
+    }
+    figure img {
+        width: 10%
+    }
+    figure a img {
+        width: 100%
+    }
+    .msg {
+        font-size: 60%;
+        max-width: 80%
     }
 }
 
-@media screen and (max-width: 1462px) {
+@media (max-width: 1462px) and (orientation: landscape) {
     .block {
         max-width: 30%;
     }
 }
 
-@media screen and (min-width: 788px) and (max-width: 884px) {
+@media (min-width: 788px) and (max-width: 884px) {
     .block {
         max-width: 35%;
     }

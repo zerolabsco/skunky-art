@@ -70,17 +70,81 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 	return cmmts.String()
 }
 
-func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...DeviationList) string {
-	var list strings.Builder
+func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, content ...DeviationList) string {
 	if s.Atom && s.Page > 1 {
 		s.ReturnHTTPError(400)
 		return ""
-	} else if s.Atom {
+	}
+
+	var list, listContent strings.Builder
+
+	for i, l := 0, len(devs); i < l; i++ {
+		data := &devs[i]
+		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !(data.NSFW && !CFG.Nsfw) {
+			if allowAtom && s.Atom {
+				id := strconv.Itoa(data.ID)
+				listContent.WriteString(`<entry><author><name>`)
+				listContent.WriteString(data.Author.Username)
+				listContent.WriteString(`</name></author><title>`)
+				listContent.WriteString(data.Title)
+				listContent.WriteString(`</title><link rel="alternate" type="text/html" href="`)
+				listContent.WriteString(UrlBuilder("post", data.Author.Username, "atom-"+id))
+				listContent.WriteString(`"/><id>`)
+				listContent.WriteString(id)
+				listContent.WriteString(`</id><published>`)
+				listContent.WriteString(data.PublishedTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 -0700"))
+				listContent.WriteString(`</published>`)
+				listContent.WriteString(`<media:group><media:title>`)
+				listContent.WriteString(data.Title)
+				listContent.WriteString(`</media:title><media:thumbinal url="`)
+				listContent.WriteString(preview)
+				listContent.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
+				listContent.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
+				listContent.WriteString(`"><img src="`)
+				listContent.WriteString(fullview)
+				listContent.WriteString(`"/></a><p>`)
+				listContent.WriteString(ParseDescription(data.TextContent))
+				listContent.WriteString(`</p></div></content></entry>`)
+			} else {
+				listContent.WriteString(`<div class="block">`)
+				if fullview != "" && preview != "" {
+					listContent.WriteString(`<a title="open/download" href="`)
+					listContent.WriteString(fullview)
+					listContent.WriteString(`"><img loading="lazy" src="`)
+					listContent.WriteString(preview)
+					listContent.WriteString(`" width="15%"></a>`)
+				} else {
+					listContent.WriteString(`<h1>[ TEXT ]</h1>`)
+				}
+				listContent.WriteString(`<br><a href="`)
+				listContent.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
+				listContent.WriteString(`">`)
+				listContent.WriteString(data.Author.Username)
+				listContent.WriteString(" - ")
+				listContent.WriteString(data.Title)
+
+				if data.NSFW {
+					listContent.WriteString(` [<span class="nsfw">NSFW</span>]`)
+				}
+				if data.AI {
+					listContent.WriteString(" [🤖]")
+				}
+				if data.DD {
+					listContent.WriteString(` [<span class="dd">DD</span>]`)
+				}
+
+				listContent.WriteString("</a></div>")
+			}
+		}
+	}
+
+	if allowAtom && s.Atom {
 		list.WriteString(`<?xml version="1.0" encoding="UTF-8"?><feed xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">`)
+
 		list.WriteString(`<title>`)
 		if s.Type == 0 {
 			list.WriteString("Daily Deviations")
-		} else if len(devs) != 0 {
+		} else if s.Type == 'g' && len(devs) != 0 {
 			list.WriteString(devs[0].Author.Username)
 		} else {
 			list.WriteString("SkunkyArt")
@@ -90,75 +154,16 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, content ...Deviatio
 		list.WriteString(`<link rel="alternate" href="`)
 		list.WriteString(Host)
 		list.WriteString(`"/>`)
+
+		list.WriteString(listContent.String())
+
+		list.WriteString("</feed>")
+		wr(s.Writer, list.String())
 	} else {
 		list.WriteString(`<div class="content">`)
-	}
-	for _, data := range devs {
-		if !(data.NSFW && !CFG.Nsfw) {
-			url := ParseMedia(data.Media)
-			if s.Atom {
-				id := strconv.Itoa(data.ID)
-				list.WriteString(`<entry><author><name>`)
-				list.WriteString(data.Author.Username)
-				list.WriteString(`</name></author><title>`)
-				list.WriteString(data.Title)
-				list.WriteString(`</title><link rel="alternate" type="text/html" href="`)
-				list.WriteString(UrlBuilder("post", data.Author.Username, "atom-"+id))
-				list.WriteString(`"/><id>`)
-				list.WriteString(id)
-				list.WriteString(`</id><published>`)
-				list.WriteString(data.PublishedTime.UTC().Format("Mon, 02 Jan 2006 15:04:05 -0700"))
-				list.WriteString(`</published>`)
-				list.WriteString(`<media:group><media:title>`)
-				list.WriteString(data.Title)
-				list.WriteString(`</media:title><media:thumbinal url="`)
-				list.WriteString(url)
-				list.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
-				list.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
-				list.WriteString(`"><img src="`)
-				list.WriteString(url)
-				list.WriteString(`"/></a><p>`)
-				list.WriteString(ParseDescription(data.TextContent))
-				list.WriteString(`</p></div></content></entry>`)
-			} else {
-				list.WriteString(`<div class="block">`)
-				if url != "" {
-					list.WriteString(`<a title="open/download" href="`)
-					list.WriteString(url)
-					list.WriteString(`"><img loading="lazy" src="`)
-					list.WriteString(url)
-					list.WriteString(`" width="15%"></a>`)
-				} else {
-					list.WriteString(`<h1>[ TEXT ]</h1>`)
-				}
-				list.WriteString(`<br><a href="`)
-				list.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
-				list.WriteString(`">`)
-				list.WriteString(data.Author.Username)
-				list.WriteString(" - ")
-				list.WriteString(data.Title)
 
-				// шильдики нсфв, аи и ежедневного поста
-				if data.NSFW {
-					list.WriteString(` [<span class="nsfw">NSFW</span>]`)
-				}
-				if data.AI {
-					list.WriteString(" [🤖]")
-				}
-				if data.DD {
-					list.WriteString(` [<span class="dd">DD</span>]`)
-				}
+		list.WriteString(listContent.String())
 
-				list.WriteString("</a></div>")
-			}
-		}
-	}
-
-	if s.Atom {
-		list.WriteString("</feed>")
-		s.Writer.Write([]byte(list.String()))
-		return ""
-	} else {
 		list.WriteString("</div>")
 		if content != nil {
 			list.WriteString(s.NavBase(content[0]))
@@ -177,7 +182,7 @@ type text struct {
 }
 
 func ParseDescription(dscr devianter.Text) string {
-	var parseddescription strings.Builder
+	var parsedDescription strings.Builder
 	TagBuilder := func(content string, tags ...string) string {
 		l := len(tags)
 		for x := 0; x < l; x++ {
@@ -274,16 +279,18 @@ func ParseDescription(dscr devianter.Text) string {
 
 			switch x.Type {
 			case "atomic":
-				d := entities[x.EntityRanges[0].Key]
-				parseddescription.WriteString(`<a href="`)
-				parseddescription.WriteString(ConvertDeviantArtUrlToSkunkyArt(d.Url))
-				parseddescription.WriteString(`"><img width="50%" src="`)
-				parseddescription.WriteString(ParseMedia(d.Media))
-				parseddescription.WriteString(`" title="`)
-				parseddescription.WriteString(d.Author.Username)
-				parseddescription.WriteString(" - ")
-				parseddescription.WriteString(d.Title)
-				parseddescription.WriteString(`"></a>`)
+				if len(x.EntityRanges) != 0 {
+					d := entities[x.EntityRanges[0].Key]
+					parsedDescription.WriteString(`<a href="`)
+					parsedDescription.WriteString(ConvertDeviantArtUrlToSkunkyArt(d.Url))
+					parsedDescription.WriteString(`"><img width="50%" src="`)
+					parsedDescription.WriteString(ParseMedia(d.Media))
+					parsedDescription.WriteString(`" title="`)
+					parsedDescription.WriteString(d.Author.Username)
+					parsedDescription.WriteString(" - ")
+					parsedDescription.WriteString(d.Title)
+					parsedDescription.WriteString(`"></a>`)
+				}
 			case "unstyled":
 				if l := len(Styles); l != 0 {
 					for n, r := range Styles {
@@ -292,31 +299,31 @@ func ParseDescription(dscr devianter.Text) string {
 							tag = "h2"
 						}
 
-						parseddescription.WriteString(x.Text[:r.From])
+						parsedDescription.WriteString(x.Text[:r.From])
 						if len(urls) != 0 && len(x.EntityRanges) != 0 {
 							ra := &x.EntityRanges[0]
 
-							parseddescription.WriteString(`<a target="_blank" href="`)
-							parseddescription.WriteString(urls[ra.Key])
-							parseddescription.WriteString(`">`)
-							parseddescription.WriteString(r.TXT)
-							parseddescription.WriteString(`</a>`)
+							parsedDescription.WriteString(`<a target="_blank" href="`)
+							parsedDescription.WriteString(urls[ra.Key])
+							parsedDescription.WriteString(`">`)
+							parsedDescription.WriteString(r.TXT)
+							parsedDescription.WriteString(`</a>`)
 						} else if l > n+1 {
-							parseddescription.WriteString(r.TXT)
+							parsedDescription.WriteString(r.TXT)
 						}
-						parseddescription.WriteString(TagBuilder(tag, x.Text[r.To:]))
+						parsedDescription.WriteString(TagBuilder(tag, x.Text[r.To:]))
 					}
 				} else {
-					parseddescription.WriteString(x.Text)
+					parsedDescription.WriteString(x.Text)
 				}
 			}
-			parseddescription.WriteString("<br>")
+			parsedDescription.WriteString("<br>")
 		}
 	} else if dl != 0 {
 		for tt := html.NewTokenizer(strings.NewReader(dscr.Html.Markup)); ; {
 			switch tt.Next() {
 			case html.ErrorToken:
-				return parseddescription.String()
+				return parsedDescription.String()
 			case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
 				token := tt.Token()
 				switch token.Data {
@@ -324,11 +331,11 @@ func ParseDescription(dscr devianter.Text) string {
 					for _, a := range token.Attr {
 						if a.Key == "href" {
 							url := DeleteTrackingFromUrl(a.Val)
-							parseddescription.WriteString(`<a target="_blank" href="`)
-							parseddescription.WriteString(url)
-							parseddescription.WriteString(`">`)
-							parseddescription.WriteString(GetValueOfTag(tt))
-							parseddescription.WriteString("</a> ")
+							parsedDescription.WriteString(`<a target="_blank" href="`)
+							parsedDescription.WriteString(url)
+							parsedDescription.WriteString(`">`)
+							parsedDescription.WriteString(GetValueOfTag(tt))
+							parsedDescription.WriteString("</a> ")
 						}
 					}
 				case "img":
@@ -344,24 +351,24 @@ func ParseDescription(dscr devianter.Text) string {
 						}
 						if title != "" {
 							for x := -1; x < b; x++ {
-								parseddescription.WriteString(`<img src="`)
-								parseddescription.WriteString(uri)
-								parseddescription.WriteString(`" title="`)
-								parseddescription.WriteString(title)
-								parseddescription.WriteString(`">`)
+								parsedDescription.WriteString(`<img src="`)
+								parsedDescription.WriteString(uri)
+								parsedDescription.WriteString(`" title="`)
+								parsedDescription.WriteString(title)
+								parsedDescription.WriteString(`">`)
 							}
 						}
 					}
 				case "br", "li", "ul", "p", "b":
-					parseddescription.WriteString(token.String())
+					parsedDescription.WriteString(token.String())
 				case "div":
-					parseddescription.WriteString("<p> ")
+					parsedDescription.WriteString("<p> ")
 				}
 			case html.TextToken:
-				parseddescription.Write(tt.Text())
+				parsedDescription.Write(tt.Text())
 			}
 		}
 	}
 
-	return parseddescription.String()
+	return parsedDescription.String()
 }
