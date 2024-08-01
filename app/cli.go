@@ -74,7 +74,7 @@ func addInstance() {
 	var settingsVar struct {
 		Instances []settings `json:"instances"`
 	}
-	instancesJson, err := os.OpenFile("instances.test.json", os.O_CREATE|os.O_WRONLY, 0644)
+	instancesJson, err := os.OpenFile("instances.json", os.O_CREATE|os.O_WRONLY, 0644)
 	try(err)
 	defer instancesJson.Close()
 
