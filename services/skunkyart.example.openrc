@@ -1,13 +1,20 @@
 #!/sbin/openrc-run
-
-directory=<path_to_dir_with_skunkyart>
-# command_args="-c $directory/config.json" # if SA wasn't start, try to uncomment this line
-command=$directory/skunkyart
-
-name="SkunkyArt"
-description="Privacy frontend for deviantart.com"
 supervisor=supervise-daemon
+user=skunkyart:skunkyart
+name=SkunkyArt
+directory=/opt/skunkyart
+command=$directory/bin/skunkyart
+description="Privacy-oriented frontend for DeviantArt"
+error_logger=logger
+output_logger=logger
+no_new_privs=true
+umask=0077
+
+# if you use old version openrc, uncomment function lower
+# start_pre() {
+# 	cd $directory
+# }
 
 depend() {
-	need net
+    need net localmount bootmisc
 }

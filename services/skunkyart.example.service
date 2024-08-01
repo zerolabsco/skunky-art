@@ -1,7 +1,7 @@
 # Note: i didn't use systemd, so it can be not works :)
 
 [Unit]
-Description=Privacy frontend for deviantart.com
+Description=Privacy-oriented frontend for DeviantArt
 
 [Service]
 Directory=<path-to-dir-with-skunkyart>

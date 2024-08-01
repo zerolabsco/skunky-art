@@ -32,6 +32,20 @@ func tryWithExitStatus(err error, code int) {
 	}
 }
 
+func RefreshInstances() {
+	for {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					recover()
+				}
+			}()
+			Templates["instances.json"] = string(Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body)
+		}()
+		time.Sleep(1 * time.Hour)
+	}
+}
+
 // some crap for frontend
 func (s skunkyart) ExecuteTemplate(file string, data any) {
 	var buf strings.Builder
@@ -46,7 +60,7 @@ func UrlBuilder(strs ...string) string {
 	var str strings.Builder
 	l := len(strs)
 	str.WriteString(Host)
-	str.WriteString(CFG.BasePath)
+	str.WriteString(CFG.URI)
 	for n, x := range strs {
 		str.WriteString(x)
 		if n+1 < l && !(strs[n+1][0] == '?' || strs[n+1][0] == '&') && !(x[0] == '?' || x[0] == '&') {
@@ -220,11 +234,10 @@ func BuildUserPlate(name string) string {
 
 func GetValueOfTag(t *html.Tokenizer) string {
 	for tt := t.Next(); ; {
-		switch tt {
-		default:
-			return ""
-		case html.TextToken:
+		if tt == html.TextToken {
 			return string(t.Text())
+		} else {
+			return ""
 		}
 	}
 }

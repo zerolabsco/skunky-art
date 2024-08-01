@@ -3,10 +3,10 @@
         {
             "title": "skunky.ebloid.ru",
             "country": "Russia",
-            "urls": [{
+            "urls": {
                 "ygg": "http://[201:eba5:d1fc:bf7b:cfcb:a811:4b8b:7ea3]/art",
                 "clearnet": "https://skunky.ebloid.ru/art"
-            }],
+            },
             "settings": {
                 "nsfw": false,
                 "proxy": false
@@ -15,9 +15,9 @@
         {
             "title": "clovius.club",
             "country": "Sweden",
-            "urls": [{
+            "urls": {
                 "clearnet": "https://skunky.clovius.club"
-            }],
+            },
             "settings": {
                 "nsfw": true,
                 "proxy": true
@@ -26,9 +26,9 @@
         {
             "title": "bloat.cat",
             "country": "Romania",
-            "urls": [{
+            "urls": {
                 "clearnet": "https://skunky.bloat.cat"
-            }],
+            },
             "settings": {
                 "nsfw": true,
                 "proxy": true
@@ -37,9 +37,9 @@
         {
             "title": "frontendfriendly.xyz",
             "country": "Finland",
-            "urls": [{
+            "urls": {
                 "clearnet": "https://skunkyart.frontendfriendly.xyz"
-            }],
+            },
             "settings": {
                 "nsfw": true,
                 "proxy": true
@@ -48,9 +48,9 @@
         {
             "title": "lumaeris.com",
             "country": "US",
-            "urls": [{
+            "urls": {
                 "clearnet": "https://skunkyart.lumaeris.com"
-            }],
+            },
             "settings": {
                 "nsfw": true,
                 "proxy": true

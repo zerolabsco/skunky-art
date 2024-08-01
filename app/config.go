@@ -21,7 +21,7 @@ type cache_config struct {
 type config struct {
 	cfg           string
 	Listen        string
-	BasePath      string `json:"base-path"`
+	URI           string `json:"uri"`
 	Cache         cache_config
 	Proxy, Nsfw   bool
 	UserAgent     string   `json:"user-agent"`
@@ -30,15 +30,15 @@ type config struct {
 }
 
 var CFG = config{
-	cfg:      "config.json",
-	Listen:   "127.0.0.1:3003",
-	BasePath: "/",
+	cfg:    "config.json",
+	Listen: "127.0.0.1:3003",
+	URI:    "/",
 	Cache: cache_config{
-		Enabled:        true,
+		Enabled:        false,
 		Path:           "cache",
 		UpdateInterval: 1,
 	},
-	Dirs:      []string{"html", "css"},
+	Dirs:      []string{"html", "css", "misc"},
 	UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
 	Proxy:     true,
 	Nsfw:      true,
@@ -47,42 +47,6 @@ var CFG = config{
 var lifetimeParsed int64
 
 func ExecuteConfig() {
-	go func() {
-		for {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						recover()
-					}
-				}()
-				Templates["instances.json"] = string(Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body)
-			}()
-			time.Sleep(1 * time.Hour)
-		}
-	}()
-
-	const helpmsg = `SkunkyArt v1.3.1 [CSS improvements for mobile and strips on Daily Deviations]
-Usage:
-	- [-c|--config] - path to config
-	- [-h|--help]	- returns this message
-Example:
-	./skunkyart -c config.json
-Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3.1`
-
-	a := os.Args
-	for n, x := range a {
-		switch x {
-		case "-c", "--config":
-			if len(a) >= 3 {
-				CFG.cfg = a[n+1]
-			} else {
-				exit("Not enought arguments", 1)
-			}
-		case "-h", "--help":
-			exit(helpmsg, 0)
-		}
-	}
-
 	if CFG.cfg != "" {
 		f, err := os.ReadFile(CFG.cfg)
 		tryWithExitStatus(err, 1)

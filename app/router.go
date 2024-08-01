@@ -11,7 +11,7 @@ var Host string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
-		if l := len(CFG.BasePath); len(path) > l {
+		if l := len(CFG.URI); len(path) > l {
 			path = path[l-1:]
 		} else {
 			path = "/"
@@ -54,7 +54,7 @@ func Router() {
 		var skunky skunkyart
 		skunky.Writer = w
 		skunky.Args = r.URL.Query()
-		skunky.BasePath = CFG.BasePath
+		skunky.BasePath = CFG.URI
 
 		arg := skunky.Args.Get
 		skunky.QueryRaw = arg("q")
@@ -75,7 +75,7 @@ func Router() {
 		default:
 			skunky.ReturnHTTPError(404)
 		case "":
-			skunky.ExecuteTemplate("index.htm", &CFG.BasePath)
+			skunky.ExecuteTemplate("index.htm", &CFG.URI)
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":

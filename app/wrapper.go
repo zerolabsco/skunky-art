@@ -31,20 +31,7 @@ type skunkyart struct {
 		About struct {
 			Proxy     bool
 			Nsfw      bool
-			Instances []struct {
-				Title   string
-				Country string
-				Urls    []struct {
-					I2P      string `json:"i2p"`
-					Ygg      string
-					Tor      string
-					Clearnet string
-				}
-				Settings struct {
-					Nsfw  bool
-					Proxy bool
-				}
-			}
+			Instances []settings
 		}
 
 		SomeList  string
@@ -229,48 +216,49 @@ func (s skunkyart) GRUser() {
 // посты
 func (s skunkyart) Deviation(author, postname string) {
 	id_search := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
-	if len(id_search) >= 1 {
-		post := &s.Templates.Deviation
-
-		id := id_search[len(id_search)-1]
-		post.Post = devianter.GetDeviation(id, author)
-
-		if post.Post.Deviation.TextContent.Excerpt != "" {
-			post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
-		} else {
-			post.Post.Description = ParseDescription(post.Post.Deviation.Extended.DescriptionText)
-		}
-		// время публикации
-		post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
-		post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
-		for _, x := range post.Post.Deviation.Extended.RelatedContent {
-			if len(x.Deviations) != 0 {
-				post.Related += s.DeviationList(x.Deviations, false)
-			}
-		}
-
-		// хештэги
-		for _, x := range post.Post.Deviation.Extended.Tags {
-			var tag strings.Builder
-			tag.WriteString(` <a href="`)
-			tag.WriteString(UrlBuilder("search", "?q=", x.Name, "&type=tag"))
-			tag.WriteString(`">#`)
-			tag.WriteString(x.Name)
-			tag.WriteString("</a>")
-
-			post.Tags += tag.String()
-		}
-
-		if post.Post.Comments.Total <= 50 {
-			post.Post.Comments.Cursor = ""
-		}
-
-		post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
-
-		s.ExecuteTemplate("deviantion.htm", &s)
-	} else {
+	if len(id_search) < 1 {
 		s.ReturnHTTPError(400)
+		return
 	}
+
+	post := &s.Templates.Deviation
+
+	id := id_search[len(id_search)-1]
+	post.Post = devianter.GetDeviation(id, author)
+
+	if post.Post.Deviation.TextContent.Excerpt != "" {
+		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
+	} else {
+		post.Post.Description = ParseDescription(post.Post.Deviation.Extended.DescriptionText)
+	}
+	// время публикации
+	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
+	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
+	for _, x := range post.Post.Deviation.Extended.RelatedContent {
+		if len(x.Deviations) != 0 {
+			post.Related += s.DeviationList(x.Deviations, false)
+		}
+	}
+
+	// хештэги
+	for _, x := range post.Post.Deviation.Extended.Tags {
+		var tag strings.Builder
+		tag.WriteString(` <a href="`)
+		tag.WriteString(UrlBuilder("search", "?q=", x.Name, "&type=tag"))
+		tag.WriteString(`">#`)
+		tag.WriteString(x.Name)
+		tag.WriteString("</a>")
+
+		post.Tags += tag.String()
+	}
+
+	if post.Post.Comments.Total <= 50 {
+		post.Post.Comments.Cursor = ""
+	}
+
+	post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
+
+	s.ExecuteTemplate("deviantion.htm", &s)
 }
 
 func (s skunkyart) DD() {
@@ -298,7 +286,6 @@ func (s skunkyart) DD() {
 }
 
 func (s skunkyart) Search() {
-	s.Atom = false
 	var err error
 	ss := &s.Templates.Search
 	switch s.Type {
@@ -365,15 +352,16 @@ func (s skunkyart) Search() {
 }
 
 func (s skunkyart) Emojitar(name string) {
-	if name != "" && (s.Type == 'a' || s.Type == 'e') {
-		ae, e := devianter.AEmedia(name, s.Type)
-		if e != nil {
-			s.ReturnHTTPError(404)
-		}
-		wr(s.Writer, ae)
-	} else {
+	if name == "" || !(s.Type == 'a' || s.Type == 'e') {
 		s.ReturnHTTPError(400)
+		return
 	}
+
+	ae, e := devianter.AEmedia(name, s.Type)
+	if e != nil {
+		s.ReturnHTTPError(404)
+	}
+	wr(s.Writer, ae)
 }
 
 func (s skunkyart) About() {

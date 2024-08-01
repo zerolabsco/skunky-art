@@ -1,17 +1,17 @@
 {
-    "listen": "0.0.0.0:3003",
-    "base-path": "/",
+    "listen": "0:3003",
+    "uri": "/",
     "cache": {
         "enabled": true,
-        "path": "/home/skunk/projects/skunkyart/cache",
-        "lifetime": "1w",
+        "path": "cache",
+        "lifetime": null,
         "max-size": 1024,
         "update-interval": 5
     },
     "dirs-to-memory": [
-        "/home/skunk/projects/skunkyart/html",
-        "/home/skunk/projects/skunkyart/css",
-        "/home/skunk/projects/skunkyart/misc"
+        "html",
+        "css",
+        "misc"
     ],
     "download-proxy": "http://127.0.0.1:8080",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
