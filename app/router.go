@@ -1,13 +1,15 @@
 package app
 
 import (
+	"io"
 	"net/http"
 	u "net/url"
+	"skunkyart/static"
 	"strconv"
 	"strings"
 )
 
-var Host string
+var Host, Path string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
@@ -41,6 +43,15 @@ func Router() {
 		return
 	}
 
+	open := func(name string) []byte {
+		file, err := static.Templates.Open(name)
+		try(err)
+		fileReaded, err := io.ReadAll(file)
+		try(err)
+
+		return fileReaded
+	}
+
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
 		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
@@ -49,7 +60,8 @@ func Router() {
 			Host = "http://" + r.Host
 		}
 
-		path := parsepath(r.URL.Path)
+		Path = r.URL.Path
+		path := parsepath(Path)
 		// структура с функциями
 		var skunky skunkyart
 		skunky.Writer = w
@@ -70,12 +82,14 @@ func Router() {
 			skunky.Atom = true
 		}
 
+		skunky.Endpoint = path[1]
+
 		// пути
-		switch path[1] {
+		switch skunky.Endpoint {
 		default:
 			skunky.ReturnHTTPError(404)
 		case "":
-			skunky.ExecuteTemplate("index.htm", &CFG.URI)
+			w.Write(open("html/index.htm"))
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -88,6 +102,13 @@ func Router() {
 		case "media":
 			switch path[2] {
 			case "file":
+				if a := arg("filename"); a != "" {
+					var filename strings.Builder
+					filename.WriteString(`filename="`)
+					filename.WriteString(a)
+					filename.WriteString(`"`)
+					w.Header().Add("Content-Disposition", filename.String())
+				}
 				skunky.DownloadAndSendMedia(path[3], next(path, 4))
 			case "emojitar":
 				skunky.Emojitar(path[3])
@@ -96,9 +117,9 @@ func Router() {
 			skunky.About()
 		case "stylesheet":
 			w.Header().Add("content-type", "text/css")
-			wr(w, Templates["skunky.css"])
+			w.Write(open("css/skunky.css"))
 		case "favicon.ico":
-			wr(w, Templates["logo.png"])
+			w.Write(open("images/logo.png"))
 		}
 	}
 

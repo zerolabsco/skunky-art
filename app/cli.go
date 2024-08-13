@@ -78,16 +78,16 @@ func addInstance() {
 	try(err)
 	defer instancesJson.Close()
 
-	instances, err := os.OpenFile("INSTANCES.md", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	instancesFile, err := os.OpenFile("INSTANCES.md", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	try(err)
-	defer instances.Close()
+	defer instancesFile.Close()
 
 	for {
-		if Templates["instances.json"] == "" {
+		if string(instances) == "" {
 			print("\rDownloading instance list...")
 		} else {
 			println("\r\033[2KDownloaded!")
-			try(json.Unmarshal([]byte(Templates["instances.json"]), &settingsVar))
+			try(json.Unmarshal(instances, &settingsVar))
 
 			settingsVar.Instances = append(settingsVar.Instances, settings{
 				Title:       prompt("Title", true),
@@ -113,51 +113,46 @@ func addInstance() {
 			settingsVar := &settingsVar.Instances[len(settingsVar.Instances)-1]
 			var mdstr bytes.Buffer
 
-			mdstr.WriteString("\n|")
-			if settingsVar.Urls.Clearnet != "" {
-				mdstr.WriteString("[")
-				mdstr.WriteString(settingsVar.Title)
-				mdstr.WriteString("](")
-				mdstr.WriteString(settingsVar.Urls.Clearnet)
-				mdstr.WriteString(")")
-			} else {
-				mdstr.WriteString(settingsVar.Title)
+			mdbuilder := func(yes bool, link string, title string) {
+				switch {
+				case yes && (title != "" && link != ""):
+					mdstr.WriteString("[")
+					mdstr.WriteString(title)
+					mdstr.WriteString("](")
+					mdstr.WriteString(link)
+					mdstr.WriteString(")")
+				case yes && link != "":
+					mdstr.WriteString("[Yes](")
+					mdstr.WriteString(link)
+					mdstr.WriteString(")")
+				case yes:
+					mdstr.WriteString("Yes")
+				default:
+					mdstr.WriteString("No")
+				}
+				mdstr.WriteString("|")
 			}
-			mdstr.WriteString("|")
+
+			mdstr.WriteString("\n|")
+			mdbuilder(settingsVar.Urls.Clearnet != "", settingsVar.Urls.Clearnet, settingsVar.Title)
 
 			urls := []string{settingsVar.Urls.Ygg, settingsVar.Urls.I2P, settingsVar.Urls.Tor}
 			for i, l := 0, len(urls); i < l; i++ {
 				url := urls[i]
-				if url != "" {
-					mdstr.WriteString("[Yes](")
-					mdstr.WriteString(url)
-					mdstr.WriteString(")|")
-				} else {
-					mdstr.WriteString("No|")
-				}
+				mdbuilder(url != "", url, "")
 			}
 
 			settings := []bool{settingsVar.Settings.Nsfw, settingsVar.Settings.Proxy}
 			for i, l := 0, len(settings); i < l; i++ {
-				if settings[i] {
-					mdstr.WriteString("Yes|")
-				} else {
-					mdstr.WriteString("No|")
-				}
+				mdbuilder(settings[i], "", "")
 			}
 
-			if settingsVar.ModifiedSrc != "" {
-				mdstr.WriteString("[Yes](")
-				mdstr.WriteString(settingsVar.ModifiedSrc)
-				mdstr.WriteString(")|")
-			} else {
-				mdstr.WriteString("No|")
-			}
+			mdbuilder(settingsVar.ModifiedSrc != "", settingsVar.ModifiedSrc, "")
 
 			mdstr.WriteString(settingsVar.Country)
 			mdstr.WriteString("|")
 
-			instances.Write(mdstr.Bytes())
+			instancesFile.Write(mdstr.Bytes())
 			break
 		}
 		time.Sleep(500 * time.Millisecond)

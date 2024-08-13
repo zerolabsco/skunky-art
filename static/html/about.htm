@@ -1,23 +1,8 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>SkunkyArt</title>
-        <link rel="stylesheet" href="{{.BasePath}}stylesheet">
-        <link rel="icon" type="image/x-icon" href="{{.BasePath}}favicon.ico">
-    </head>
+    {{template "head" .}}
     <main>
-        <header>
-            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a></h1>
-            <form method="get" action="{{.BasePath}}search">
-                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
-                <select name="type">
-                    <option value="all">All</option>
-                    <option value="tag">Tag</option>
-                    <option value="r">Groups</option>
-                </select>
-                <button type="submit">Search!</button>
-            </form>
-        </header>
+        {{template "header" .}}
         <p>
             SkunkyArt is an alternative frontend for deviantart.com, written in Go.
         </p>

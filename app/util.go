@@ -1,14 +1,13 @@
 package app
 
 import (
-	"encoding/base64"
 	"io"
 	"net/http"
-	u "net/url"
+	"net/url"
 	"os"
+	"skunkyart/static"
 	"strconv"
 	"strings"
-	"syscall"
 	"text/template"
 	"time"
 
@@ -32,26 +31,34 @@ func tryWithExitStatus(err error, code int) {
 	}
 }
 
+func restore() {
+	if r := recover(); r != nil {
+		recover()
+	}
+}
+
+var instances []byte
+
 func RefreshInstances() {
 	for {
 		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					recover()
-				}
-			}()
-			Templates["instances.json"] = string(Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body)
+			defer restore()
+			instances = Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body
 		}()
 		time.Sleep(1 * time.Hour)
 	}
 }
 
 // some crap for frontend
-func (s skunkyart) ExecuteTemplate(file string, data any) {
+func (s skunkyart) ExecuteTemplate(file, dir string, data any) {
 	var buf strings.Builder
 	tmp := template.New(file)
-	tmp, e := tmp.Parse(Templates[file])
-	try(e)
+	tmp, err := tmp.ParseFS(static.Templates, dir+"/*")
+	if err != nil {
+		s.Writer.WriteHeader(500)
+		wr(s.Writer, err.Error())
+		return
+	}
 	try(tmp.Execute(&buf, &data))
 	wr(s.Writer, buf.String())
 }
@@ -91,15 +98,15 @@ type Downloaded struct {
 	Body    []byte
 }
 
-func Download(url string) (d Downloaded) {
+func Download(urlString string) (d Downloaded) {
 	cli := &http.Client{}
 	if CFG.DownloadProxy != "" {
-		u, e := u.Parse(CFG.DownloadProxy)
+		u, e := url.Parse(CFG.DownloadProxy)
 		try(e)
 		cli.Transport = &http.Transport{Proxy: http.ProxyURL(u)}
 	}
 
-	req, e := http.NewRequest("GET", url, nil)
+	req, e := http.NewRequest("GET", urlString, nil)
 	try(e)
 	req.Header.Set("User-Agent", CFG.UserAgent)
 
@@ -115,97 +122,16 @@ func Download(url string) (d Downloaded) {
 	return
 }
 
-// caching
-func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
-	var url strings.Builder
-	url.WriteString("https://images-wixmp-")
-	url.WriteString(subdomain)
-	url.WriteString(".wixmp.com/")
-	url.WriteString(path)
-	url.WriteString("?token=")
-	url.WriteString(s.Args.Get("token"))
-
-	if CFG.Cache.Enabled {
-		fname := CFG.Cache.Path + "/" + base64.StdEncoding.EncodeToString([]byte(subdomain+path))
-		file, e := os.Open(fname)
-
-		if e != nil {
-			dwnld := Download(url.String())
-			if dwnld.Status == 200 && dwnld.Headers["Content-Type"][0][:5] == "image" {
-				try(os.WriteFile(fname, dwnld.Body, 0700))
-				s.Writer.Write(dwnld.Body)
-			}
-		} else {
-			file, e := io.ReadAll(file)
-			try(e)
-			s.Writer.Write(file)
-		}
-	} else if CFG.Proxy {
-		dwnld := Download(url.String())
-		s.Writer.Write(dwnld.Body)
-	} else {
-		s.Writer.WriteHeader(403)
-		s.Writer.Write([]byte("Sorry, butt proxy on this instance are disabled."))
-	}
-}
-
-func InitCacheSystem() {
-	c := &CFG.Cache
-	os.Mkdir(CFG.Cache.Path, 0700)
-	for {
-		dir, e := os.Open(c.Path)
-		try(e)
-		stat, e := dir.Stat()
-		try(e)
-
-		dirnames, e := dir.Readdirnames(-1)
-		try(e)
-		for _, a := range dirnames {
-			a = c.Path + "/" + a
-			if c.Lifetime != "" {
-				now := time.Now().UnixMilli()
-
-				f, _ := os.Stat(a)
-				stat := f.Sys().(*syscall.Stat_t)
-				time := time.Unix(stat.Ctim.Unix()).UnixMilli()
-
-				if time+lifetimeParsed <= now {
-					try(os.RemoveAll(a))
-				}
-			}
-			if c.MaxSize != 0 && stat.Size() > c.MaxSize {
-				try(os.RemoveAll(a))
-			}
-		}
-
-		dir.Close()
-		time.Sleep(time.Second * time.Duration(CFG.Cache.UpdateInterval))
-	}
-}
-
-func CopyTemplatesToMemory() {
-	for _, dirname := range CFG.Dirs {
-		dir, e := os.ReadDir(dirname)
-		tryWithExitStatus(e, 1)
-
-		for _, x := range dir {
-			file, e := os.ReadFile(dirname + "/" + x.Name())
-			tryWithExitStatus(e, 1)
-			Templates[x.Name()] = string(file)
-		}
-	}
-}
-
 /* PARSING HELPERS */
-func ParseMedia(media devianter.Media, thumb ...int) string {
-	url := devianter.UrlFromMedia(media, thumb...)
-	if len(url) != 0 && CFG.Proxy {
-		url = url[21:]
-		dot := strings.Index(url, ".")
+func ParseMedia(media devianter.Media, filename string, thumb ...int) string {
+	mediaUrl := devianter.UrlFromMedia(media, thumb...)
+	if len(mediaUrl) != 0 && CFG.Proxy {
+		mediaUrl = mediaUrl[21:]
+		dot := strings.Index(mediaUrl, ".")
 
-		return UrlBuilder("media", "file", url[:dot], url[dot+11:])
+		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", url.QueryEscape(filename))
 	}
-	return url
+	return mediaUrl
 }
 
 func ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
@@ -255,7 +181,9 @@ func (s skunkyart) NavBase(c DeviationList) string {
 	list.WriteString("<br>")
 	prevrev := func(msg string, page int, onpage bool) {
 		if !onpage {
-			list.WriteString(`<a href="?p=`)
+			list.WriteString(`<a href="`)
+			list.WriteString(Path)
+			list.WriteString(`?p=`)
 			list.WriteString(strconv.Itoa(page))
 			if s.Type != 0 {
 				list.WriteString("&type=")

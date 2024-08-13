@@ -22,12 +22,19 @@ header form {
 header {
     display: flex;
 }
+form {
+    font-size: 0;
+    border: solid #164e3e 1px;
+    max-width: fit-content;
+}
 form input, button, select {
     background-color: #134134;
     padding: 5px;
     color: whitesmoke;
-    border: 0px;
-    border-radius: 1px;
+    border: 0;
+}
+input:focus {
+    outline: none;
 }
 
 /* BLOCKS */
@@ -146,6 +153,8 @@ form input, button, select {
     
     header form {
         font-size: 60%;
+        max-width: unset;
+        border: 0;
     }
     header, center {
         text-align: center;

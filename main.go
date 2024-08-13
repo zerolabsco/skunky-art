@@ -2,6 +2,7 @@ package main
 
 import (
 	"skunkyart/app"
+	"skunkyart/static"
 	"time"
 
 	"git.macaw.me/skunky/devianter"
@@ -12,7 +13,7 @@ func main() {
 
 	app.ExecuteCommandLineArguments()
 	app.ExecuteConfig()
-	app.CopyTemplatesToMemory()
+	static.CopyTemplatesToMemory()
 
 	go func() {
 		for {

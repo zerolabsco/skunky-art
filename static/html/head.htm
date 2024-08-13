@@ -1,0 +1,24 @@
+{{define "head"}}
+<head>
+    <title>SkunkyArt |
+        {{if eq .Endpoint "search"}}
+            "{{.QueryRaw}}"
+        {{else if eq .Endpoint "post"}}
+            {{.Templates.Deviation.Post.Deviation.Author.Username}} — {{.Templates.Deviation.Post.Deviation.Title}}
+        {{else if eq .Type 'a'}}
+            {{if .Templates.GroupUser.GR.Owner.Username}}
+                {{.Templates.GroupUser.GR.Owner.Username}}
+            {{else}}
+                gallery of {{.Templates.GroupUser.GR.Owner.Username}}
+            {{end}}
+        {{else}}
+            {{.Endpoint}}
+        {{end}}
+    </title>
+
+    <base href="{{.BasePath}}">
+    <meta name="referrer" content="no-referrer" />
+    <link rel="stylesheet" href="{{.BasePath}}stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{.BasePath}}favicon.ico">
+</head>
+{{end}}

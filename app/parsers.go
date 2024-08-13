@@ -41,7 +41,9 @@ func (s skunkyart) ParseComments(c devianter.Comments) string {
 		cmmts.WriteString("</b></a> ")
 
 		if x.Parent > 0 {
-			cmmts.WriteString(` In reply to <a href="#`)
+			cmmts.WriteString(` In reply to <a href="`)
+			cmmts.WriteString(Path)
+			cmmts.WriteString("#")
 			cmmts.WriteString(strconv.Itoa(x.Parent))
 			cmmts.WriteString(`">`)
 			if replied[x.Parent] == "" {
@@ -80,7 +82,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 
 	for i, l := 0, len(devs); i < l; i++ {
 		data := &devs[i]
-		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !(data.NSFW && !CFG.Nsfw) {
+		if preview, fullview := ParseMedia(data.Media, data.Title, 320), ParseMedia(data.Media, data.Title); !(data.NSFW && !CFG.Nsfw) {
 			if allowAtom && s.Atom {
 				id := strconv.Itoa(data.ID)
 				listContent.WriteString(`<entry><author><name>`)
@@ -284,7 +286,7 @@ func ParseDescription(dscr devianter.Text) string {
 					parsedDescription.WriteString(`<a href="`)
 					parsedDescription.WriteString(ConvertDeviantArtUrlToSkunkyArt(d.Url))
 					parsedDescription.WriteString(`"><img width="50%" src="`)
-					parsedDescription.WriteString(ParseMedia(d.Media))
+					parsedDescription.WriteString(ParseMedia(d.Media, d.Title))
 					parsedDescription.WriteString(`" title="`)
 					parsedDescription.WriteString(d.Author.Username)
 					parsedDescription.WriteString(" - ")

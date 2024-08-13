@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"skunkyart/static"
 	"strconv"
 	"time"
 
@@ -24,9 +25,9 @@ type config struct {
 	URI           string `json:"uri"`
 	Cache         cache_config
 	Proxy, Nsfw   bool
-	UserAgent     string   `json:"user-agent"`
-	DownloadProxy string   `json:"download-proxy"`
-	Dirs          []string `json:"dirs-to-memory"`
+	UserAgent     string `json:"user-agent"`
+	DownloadProxy string `json:"download-proxy"`
+	StaticPath    string `json:"static-path"`
 }
 
 var CFG = config{
@@ -38,10 +39,10 @@ var CFG = config{
 		Path:           "cache",
 		UpdateInterval: 1,
 	},
-	Dirs:      []string{"html", "css", "misc"},
-	UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-	Proxy:     true,
-	Nsfw:      true,
+	StaticPath: "static",
+	UserAgent:  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+	Proxy:      true,
+	Nsfw:       true,
 }
 
 var lifetimeParsed int64
@@ -56,6 +57,7 @@ func ExecuteConfig() {
 			exit("Incompatible settings detected: cannot use caching media content without proxy", 1)
 		}
 
+		static.StaticPath = CFG.StaticPath
 		if CFG.Cache.Enabled {
 			if CFG.Cache.Lifetime != "" {
 				var duration int64

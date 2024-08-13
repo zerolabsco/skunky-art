@@ -1,24 +1,8 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>SkunkyArt | {{.Templates.Deviation.Post.Deviation.Author.Username}} - {{.Templates.Deviation.Post.Deviation.Title}}</title>
-        <link rel="stylesheet" href="{{.BasePath}}stylesheet">
-        <meta name="referrer" content="no-referrer" />
-        <link rel="icon" type="image/x-icon" href="{{.BasePath}}favicon.ico">
-    </head>
+    {{template "head" . }}
     <main>
-        <header>
-            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a></h1>
-            <form method="get" action="{{.BasePath}}search">
-                <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
-                <select name="type">
-                    <option value="all">All</option>
-                    <option value="tag">Tag</option>
-                    <option value="r">Groups</option>
-                </select>
-                <button type="submit">Search!</button>
-            </form>
-        </header>
+        {{template "header" . }}
         <figure>
             <img src="{{.BasePath}}media/emojitar/{{.Templates.Deviation.Post.Deviation.Author.Username}}?type=a" width="30px">
             <span><strong><a href="{{.BasePath}}group_user?type=about&q={{.Templates.Deviation.Post.Deviation.Author.Username}}">{{.Templates.Deviation.Post.Deviation.Author.Username}}</a></strong> — {{if (.Templates.Deviation.Post.Deviation.DD)}}

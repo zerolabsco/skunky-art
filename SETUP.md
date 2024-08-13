@@ -1,4 +1,4 @@
-[Версия на русском языке 🇷🇺](https://git.macaw.me/skunky/SkunkyArt/src/branch/master/SETUP-RU.md)
+[Версия на русском языке 🇷🇺](/skunky/SkunkyArt/src/branch/master/SETUP-RU.md)
 
 # Units
 Maximum file size in megabytes, requires numeric value.<br>

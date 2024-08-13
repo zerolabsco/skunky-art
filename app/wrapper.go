@@ -15,17 +15,17 @@ import (
 )
 
 var wr = io.WriteString
-var Templates = make(map[string]string)
 
 type skunkyart struct {
 	Writer http.ResponseWriter
 
-	Args            url.Values
-	BasePath        string
-	Type            rune
-	Query, QueryRaw string
-	Page            int
-	Atom            bool
+	Args url.Values
+	Page int
+	Type rune
+	Atom bool
+
+	BasePath, Endpoint string
+	Query, QueryRaw    string
 
 	Templates struct {
 		About struct {
@@ -136,7 +136,7 @@ func (s skunkyart) GRUser() {
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
 				group.About.BGMeta.Url = ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
-				group.About.BG = ParseMedia(group.About.BGMeta.Media)
+				group.About.BG = ParseMedia(group.About.BGMeta.Media, group.About.BGMeta.Title)
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
@@ -171,7 +171,7 @@ func (s skunkyart) GRUser() {
 							folders.WriteString(`<a href="`)
 							folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
 							folders.WriteString(`"><img loading="lazy" src="`)
-							folders.WriteString(ParseMedia(x.Thumb.Media))
+							folders.WriteString(ParseMedia(x.Thumb.Media, x.Thumb.Title))
 							folders.WriteString(`" title="`)
 							folders.WriteString(x.Thumb.Title)
 							folders.WriteString(`"></a>`)
@@ -180,7 +180,7 @@ func (s skunkyart) GRUser() {
 						}
 						folders.WriteString("<br>")
 
-						folders.WriteString(`<a href="?folder=`)
+						folders.WriteString(`<a href="group_user?folder=`)
 						folders.WriteString(strconv.Itoa(x.FolderId))
 						folders.WriteString("&q=")
 						folders.WriteString(s.Query)
@@ -209,7 +209,7 @@ func (s skunkyart) GRUser() {
 	}
 
 	if !s.Atom {
-		s.ExecuteTemplate("gruser.htm", &s)
+		s.ExecuteTemplate("gruser.htm", "html", &s)
 	}
 }
 
@@ -233,7 +233,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	}
 	// время публикации
 	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
-	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
+	post.Post.IMG = ParseMedia(post.Post.Deviation.Media, post.Post.Deviation.Title)
 	for _, x := range post.Post.Deviation.Extended.RelatedContent {
 		if len(x.Deviations) != 0 {
 			post.Related += s.DeviationList(x.Deviations, false)
@@ -258,7 +258,7 @@ func (s skunkyart) Deviation(author, postname string) {
 
 	post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
 
-	s.ExecuteTemplate("deviantion.htm", &s)
+	s.ExecuteTemplate("deviantion.htm", "html", &s)
 }
 
 func (s skunkyart) DD() {
@@ -281,11 +281,16 @@ func (s skunkyart) DD() {
 		More:  dd.HasMore,
 	})
 	if !s.Atom {
-		s.ExecuteTemplate("daily.htm", &s)
+		s.ExecuteTemplate("daily.htm", "html", &s)
 	}
 }
 
 func (s skunkyart) Search() {
+	if s.Query == "" {
+		s.ReturnHTTPError(400)
+		return
+	}
+
 	var err error
 	ss := &s.Templates.Search
 	switch s.Type {
@@ -338,6 +343,7 @@ func (s skunkyart) Search() {
 		}
 	default:
 		s.ReturnHTTPError(400)
+		return
 	}
 	try(err)
 
@@ -348,7 +354,7 @@ func (s skunkyart) Search() {
 		})
 	}
 
-	s.ExecuteTemplate("search.htm", &s)
+	s.ExecuteTemplate("search.htm", "html", &s)
 }
 
 func (s skunkyart) Emojitar(name string) {
@@ -367,6 +373,6 @@ func (s skunkyart) Emojitar(name string) {
 func (s skunkyart) About() {
 	s.Templates.About.Nsfw = CFG.Nsfw
 	s.Templates.About.Proxy = CFG.Proxy
-	try(json.Unmarshal([]byte(Templates["instances.json"]), &s.Templates.About))
-	s.ExecuteTemplate("about.htm", &s)
+	try(json.Unmarshal(instances, &s.Templates.About))
+	s.ExecuteTemplate("about.htm", "html", &s)
 }
