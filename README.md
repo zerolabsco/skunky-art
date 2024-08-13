@@ -1,4 +1,4 @@
-<img src="/skunky/SkunkyArt/raw/branch/master/misc/logo.png" alt="SkunkyArt" title="SkunkyArt Logo" width="20%" loading="lazy"/>
+<img src="raw/branch/master/misc/logo.png" alt="SkunkyArt" title="SkunkyArt Logo" width="20%" loading="lazy"/>
 
 [![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:ebloid.ru)
 
