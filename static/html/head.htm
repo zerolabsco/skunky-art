@@ -5,12 +5,13 @@
             "{{.QueryRaw}}"
         {{else if eq .Endpoint "post"}}
             {{.Templates.Deviation.Post.Deviation.Author.Username}} — {{.Templates.Deviation.Post.Deviation.Title}}
-        {{else if eq .Type 'a'}}
-            {{if .Templates.GroupUser.GR.Owner.Username}}
-                {{.Templates.GroupUser.GR.Owner.Username}}
-            {{else}}
-                gallery of {{.Templates.GroupUser.GR.Owner.Username}}
+        {{else if eq .Endpoint "group_user"}}
+            {{if eq .Type 'g'}}
+                gallery of
+            {{else if eq .Type 'f'}}
+                favourites of
             {{end}}
+            {{.Templates.GroupUser.GR.Owner.Username}}
         {{else}}
             {{.Endpoint}}
         {{end}}

@@ -99,34 +99,36 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 
 func InitCacheSystem() {
 	c := &CFG.Cache
-	os.Mkdir(c.Path, 0700)
 	for {
-		dir, e := os.Open(c.Path)
-		try(e)
-		stat, e := dir.Stat()
-		try(e)
+		dir, err := os.ReadDir(c.Path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				os.Mkdir(c.Path, 0700)
+				continue
+			}
+			println(err.Error())
+		}
 
-		dirnames, e := dir.Readdirnames(-1)
-		try(e)
-		for _, a := range dirnames {
-			a = c.Path + "/" + a
+		for _, file := range dir {
+			fileName := c.Path + "/" + file.Name()
+			fileInfo, err := file.Info()
+			try(err)
+
 			if c.Lifetime != "" {
 				now := time.Now().UnixMilli()
 
-				f, _ := os.Stat(a)
-				stat := f.Sys().(*syscall.Stat_t)
+				stat := fileInfo.Sys().(*syscall.Stat_t)
 				time := statTime(stat)
 
 				if time+lifetimeParsed <= now {
-					try(os.RemoveAll(a))
+					try(os.RemoveAll(fileName))
 				}
 			}
-			if c.MaxSize != 0 && stat.Size() > c.MaxSize {
-				try(os.RemoveAll(a))
+			if c.MaxSize != 0 && fileInfo.Size() > c.MaxSize {
+				try(os.RemoveAll(fileName))
 			}
 		}
 
-		dir.Close()
 		time.Sleep(time.Second * time.Duration(c.UpdateInterval))
 	}
 }

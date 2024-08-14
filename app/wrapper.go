@@ -2,9 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"io"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,65 +10,6 @@ import (
 	"git.macaw.me/skunky/devianter"
 	"golang.org/x/net/html"
 )
-
-var wr = io.WriteString
-
-type skunkyart struct {
-	Writer http.ResponseWriter
-
-	Args url.Values
-	Page int
-	Type rune
-	Atom bool
-
-	BasePath, Endpoint string
-	Query, QueryRaw    string
-
-	Templates struct {
-		About struct {
-			Proxy     bool
-			Nsfw      bool
-			Instances []settings
-		}
-
-		SomeList  string
-		DDStrips  string
-		Deviation struct {
-			Post       devianter.Post
-			Related    string
-			StringTime string
-			Tags       string
-			Comments   string
-		}
-
-		GroupUser struct {
-			GR           devianter.GRuser
-			Admins       string
-			Group        bool
-			CreationDate string
-
-			About struct {
-				A devianter.About
-
-				DescriptionFormatted string
-				Interests, Social    string
-				Comments             string
-				BG                   string
-				BGMeta               devianter.Deviation
-			}
-
-			Gallery struct {
-				Folders string
-				Pages   int
-				List    string
-			}
-		}
-		Search struct {
-			Content devianter.Search
-			List    string
-		}
-	}
-}
 
 func (s skunkyart) GRUser() {
 	if len(s.Query) < 1 {
@@ -82,7 +20,7 @@ func (s skunkyart) GRUser() {
 	var g devianter.Group
 	g.Name = s.Query
 	var err error
-	s.Templates.GroupUser.GR, err = g.GetGroup()
+	s.Templates.GroupUser.GR, err = g.Get()
 	try(err)
 
 	group := &s.Templates.GroupUser
@@ -146,51 +84,65 @@ func (s skunkyart) GRUser() {
 			}
 
 		}
-	case 'g':
+	case 'g', 'f':
+		var all bool
+		var content devianter.Group
+
 		folderid, _ := strconv.Atoi(s.Args.Get("folder"))
+
+		if a := s.Args.Get("all"); a == "true" {
+			all = true
+		}
+
 		if s.Page == 0 {
 			s.Page++
 		}
 
-		gallery, err := g.GetGallery(s.Page, folderid)
-		try(err)
+		if s.Type == 'f' {
+			content = g.Favourites(s.Page, all, folderid)
+		} else {
+			content, err = g.Gallery(s.Page, folderid)
+			try(err)
+		}
 
-		if folderid > 0 {
-			group.Gallery.List = s.DeviationList(gallery.Content.Results, true, DeviationList{
-				More: gallery.Content.HasMore,
+		if folderid > 0 || (s.Type == 'f' && all) {
+			group.Gallery.List = s.DeviationList(content.Content.Results, true, DeviationList{
+				More: content.Content.HasMore,
 			})
 		} else {
-			for _, x := range gallery.Content.Gruser.Page.Modules {
+			for _, x := range content.Content.Gruser.Page.Modules {
 				if l := len(x.ModuleData.Folders.Results); l != 0 {
 					var folders strings.Builder
 					folders.WriteString(`<h1 id="folders"><a href="#folder">#</a> Folders</h1><div class="folders"><br>`)
 					for _, x := range x.ModuleData.Folders.Results {
-						folders.WriteString(`<div class="block folder-item">`)
+						if x.FolderId != -1 && x.Size != 0 {
+							folders.WriteString(`<div class="block folder-item">`)
 
-						if !(x.Thumb.NSFW && !CFG.Nsfw) {
-							folders.WriteString(`<a href="`)
-							folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
-							folders.WriteString(`"><img loading="lazy" src="`)
-							folders.WriteString(ParseMedia(x.Thumb.Media, x.Thumb.Title))
-							folders.WriteString(`" title="`)
-							folders.WriteString(x.Thumb.Title)
-							folders.WriteString(`"></a>`)
-						} else {
-							folders.WriteString(`<h1>[ <span class="nsfw">NSFW</span> ]</h1>`)
+							if !(x.Thumb.NSFW && !CFG.Nsfw) {
+								folders.WriteString(`<a href="`)
+								folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
+								folders.WriteString(`"><img loading="lazy" src="`)
+								folders.WriteString(ParseMedia(x.Thumb.Media, x.Thumb.Title))
+								folders.WriteString(`" title="`)
+								folders.WriteString(x.Thumb.Title)
+								folders.WriteString(`"></a>`)
+							} else {
+								folders.WriteString(`<h1>[ <span class="nsfw">NSFW</span> ]</h1>`)
+							}
+							folders.WriteString("<br>")
+
+							folders.WriteString(`<a href="group_user?folder=`)
+							folders.WriteString(strconv.Itoa(x.FolderId))
+							folders.WriteString("&q=")
+							folders.WriteString(s.Query)
+							folders.WriteString("&type=")
+							folders.WriteString(string(s.Type))
+							folders.WriteString(`">`)
+							folders.WriteString(x.Name)
+							folders.WriteString(`</a>`)
+
+							folders.WriteString("</div>")
 						}
-						folders.WriteString("<br>")
-
-						folders.WriteString(`<a href="group_user?folder=`)
-						folders.WriteString(strconv.Itoa(x.FolderId))
-						folders.WriteString("&q=")
-						folders.WriteString(s.Query)
-						folders.WriteString("&type=")
-						folders.WriteString(string(s.Type))
-						folders.WriteString(`">`)
-						folders.WriteString(x.Name)
-						folders.WriteString(`</a>`)
-
-						folders.WriteString("</div>")
 					}
 					folders.WriteString(`</div><h1 id="content"><a href="#content">#</a> Content</h1>`)
 					group.Gallery.Folders = folders.String()
@@ -296,7 +248,7 @@ func (s skunkyart) Search() {
 	switch s.Type {
 	case 'a', 't':
 		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type)
-	case 'g':
+	case 'g', 'f':
 		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
 	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
 		var (

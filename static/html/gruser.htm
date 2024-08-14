@@ -3,14 +3,25 @@
     {{template "head" . }}
     <main>
         <header>
-            <h1><a href="{{.BasePath}}">HOME</a> | <a href="{{.BasePath}}dd">DD</a>
-            | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery{{else}}about">About{{end}}</a>
-             | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=gallery&atom=true">RSS</a></h1>
+            <h1>
+                <a href="{{.BasePath}}">HOME</a>
+                | <a href="{{.BasePath}}dd">DD</a>
+                {{if ne .Type 'f'}}
+                    | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type={{if eq .Type 'a'}}gallery">Gallery{{else}}about">About{{end}}</a>
+                    | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=favourites">Favourites</a>
+                {{else}}
+                    | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=about">About</a>
+                    | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=gallery">Gallery</a>
+                    | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=favourites">Favourites</a>
+                {{end}}
+                | <a href="group_user?q={{.Templates.GroupUser.GR.Owner.Username}}&type=gallery&atom=true">RSS</a>
+            </h1>
              <form method="get" action="{{.BasePath}}search">
                 <input type="gallery" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <input type="hidden" name="usr" value="{{.Templates.GroupUser.GR.Owner.Username}}">
                 <select name="type">
                     <option value="gallery">Gallery</option>
+                    <option value="folders">Folders</option>
                     <option value="all">All</option>
                     <option value="tag">Tag</option>
                     <option value="r">Groups</option>

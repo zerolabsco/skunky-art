@@ -16,6 +16,8 @@ import (
 )
 
 /* INTERNAL */
+var wr = io.WriteString
+
 func exit(msg string, code int) {
 	println(msg)
 	os.Exit(code)
@@ -50,6 +52,63 @@ func RefreshInstances() {
 }
 
 // some crap for frontend
+type skunkyart struct {
+	Writer http.ResponseWriter
+
+	Args url.Values
+	Page int
+	Type rune
+	Atom bool
+
+	BasePath, Endpoint string
+	Query, QueryRaw    string
+
+	Templates struct {
+		About struct {
+			Proxy     bool
+			Nsfw      bool
+			Instances []settings
+		}
+
+		SomeList  string
+		DDStrips  string
+		Deviation struct {
+			Post       devianter.Post
+			Related    string
+			StringTime string
+			Tags       string
+			Comments   string
+		}
+
+		GroupUser struct {
+			GR           devianter.GRuser
+			Admins       string
+			Group        bool
+			CreationDate string
+
+			About struct {
+				A devianter.About
+
+				DescriptionFormatted string
+				Interests, Social    string
+				Comments             string
+				BG                   string
+				BGMeta               devianter.Deviation
+			}
+
+			Gallery struct {
+				Folders string
+				Pages   int
+				List    string
+			}
+		}
+		Search struct {
+			Content devianter.Search
+			List    string
+		}
+	}
+}
+
 func (s skunkyart) ExecuteTemplate(file, dir string, data any) {
 	var buf strings.Builder
 	tmp := template.New(file)
