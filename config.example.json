@@ -1,6 +1,6 @@
 {
-    "listen": "0:3003",
-    "uri": "/",
+    "listen": "0.0.0.0:3003",
+    "uri": "/huy/",
     "cache": {
         "enabled": true,
         "path": "cache",

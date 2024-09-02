@@ -63,6 +63,8 @@ type skunkyart struct {
 	BasePath, Endpoint string
 	Query, QueryRaw    string
 
+  API API
+
 	Templates struct {
 		About struct {
 			Proxy     bool
@@ -182,13 +184,12 @@ func Download(urlString string) (d Downloaded) {
 }
 
 /* PARSING HELPERS */
-func ParseMedia(media devianter.Media, filename string, thumb ...int) string {
-	mediaUrl := devianter.UrlFromMedia(media, thumb...)
+func ParseMedia(media devianter.Media, thumb ...int) string {
+	mediaUrl, filename := devianter.UrlFromMedia(media, thumb...)
 	if len(mediaUrl) != 0 && CFG.Proxy {
 		mediaUrl = mediaUrl[21:]
 		dot := strings.Index(mediaUrl, ".")
-
-		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", url.QueryEscape(filename))
+		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", filename)
 	}
 	return mediaUrl
 }

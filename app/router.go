@@ -83,13 +83,15 @@ func Router() {
 		}
 
 		skunky.Endpoint = path[1]
+		skunky.API.skunkyartLink = &skunky
 
 		// пути
 		switch skunky.Endpoint {
 		default:
 			skunky.ReturnHTTPError(404)
+
 		case "":
-			w.Write(open("html/index.htm"))
+			skunky.ExecuteTemplate("index.htm", "html", &CFG.URI)
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -120,6 +122,12 @@ func Router() {
 			w.Write(open("css/skunky.css"))
 		case "favicon.ico":
 			w.Write(open("images/logo.png"))
+
+		case "api":
+			switch path[2] {
+				case "random":
+					skunky.API.Random()
+			}
 		}
 	}
 

@@ -35,10 +35,10 @@
             }
         },
         {
-            "title": "frontendfriendly.xyz",
-            "country": "Finland",
+            "title": "lumaeris.com",
+            "country": "Germany",
             "urls": {
-                "clearnet": "https://skunkyart.frontendfriendly.xyz"
+                "clearnet": "https://skunkyart.lumaeris.com"
             },
             "settings": {
                 "nsfw": true,
@@ -46,10 +46,10 @@
             }
         },
         {
-            "title": "lumaeris.com",
-            "country": "US",
+            "title": "art.bloat.cat",
+            "country": "Germany",
             "urls": {
-                "clearnet": "https://skunkyart.lumaeris.com"
+                "clearnet": "https://art.bloat.cat"
             },
             "settings": {
                 "nsfw": true,

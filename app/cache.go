@@ -26,9 +26,11 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 	url.WriteString(subdomain)
 	url.WriteString(".wixmp.com/")
 	url.WriteString(path)
-	url.WriteString("?token=")
-	url.WriteString(s.Args.Get("token"))
-
+	if t := s.Args.Get("token"); t != "" {
+			url.WriteString("?token=")
+			url.WriteString(t)
+	}
+	
 	var response []byte
 
 	switch {
@@ -40,17 +42,18 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 		if tempFS[fileName] == nil {
 			tempFS[fileName] = &file{}
 		}
-		f := *tempFS[fileName]
 		mx.Unlock()
 
-		if f.Content != nil {
-			f.Score += 2
+		if tempFS[fileName].Content != nil {
+			response = tempFS[fileName].Content
+			tempFS[fileName].Score += 2
+			break
 		} else {
 			file, err := os.Open(filePath)
 			if err != nil {
 				if dwnld := Download(url.String()); dwnld.Status == 200 && dwnld.Headers["Content-Type"][0][:5] == "image" {
-					f.Content = dwnld.Body
-					try(os.WriteFile(filePath, f.Content, 0700))
+					response = dwnld.Body
+					try(os.WriteFile(filePath, response, 0700))
 				} else {
 					s.ReturnHTTPError(dwnld.Status)
 					return
@@ -58,11 +61,16 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 			} else {
 				file, e := io.ReadAll(file)
 				try(e)
-				f.Content = file
+				response = file
 			}
 
 			go func() {
 				defer restore()
+
+				mx.RLock()
+				tempFS[fileName].Content = response
+				mx.RUnlock()
+
 				for {
 					time.Sleep(1 * time.Minute)
 
@@ -77,11 +85,6 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 				}
 			}()
 		}
-
-		mx.Lock()
-		tempFS[fileName] = &f
-		mx.Unlock()
-		response = f.Content
 	case CFG.Proxy:
 		dwnld := Download(url.String())
 		if dwnld.Status != 200 {

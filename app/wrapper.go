@@ -74,7 +74,7 @@ func (s skunkyart) GRUser() {
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
 				group.About.BGMeta.Url = ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
-				group.About.BG = ParseMedia(group.About.BGMeta.Media, group.About.BGMeta.Title)
+				group.About.BG = ParseMedia(group.About.BGMeta.Media)
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
@@ -122,7 +122,7 @@ func (s skunkyart) GRUser() {
 								folders.WriteString(`<a href="`)
 								folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
 								folders.WriteString(`"><img loading="lazy" src="`)
-								folders.WriteString(ParseMedia(x.Thumb.Media, x.Thumb.Title))
+								folders.WriteString(ParseMedia(x.Thumb.Media))
 								folders.WriteString(`" title="`)
 								folders.WriteString(x.Thumb.Title)
 								folders.WriteString(`"></a>`)
@@ -185,7 +185,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	}
 	// время публикации
 	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
-	post.Post.IMG = ParseMedia(post.Post.Deviation.Media, post.Post.Deviation.Title)
+	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
 	for _, x := range post.Post.Deviation.Extended.RelatedContent {
 		if len(x.Deviations) != 0 {
 			post.Related += s.DeviationList(x.Deviations, false)

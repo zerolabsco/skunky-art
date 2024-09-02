@@ -82,8 +82,9 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 
 	for i, l := 0, len(devs); i < l; i++ {
 		data := &devs[i]
-		if preview, fullview := ParseMedia(data.Media, data.Title, 320), ParseMedia(data.Media, data.Title); !(data.NSFW && !CFG.Nsfw) {
+		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !(data.NSFW && !CFG.Nsfw) {
 			if allowAtom && s.Atom {
+				s.Writer.Header().Add("Content-type", "application/atom+xml")
 				id := strconv.Itoa(data.ID)
 				listContent.WriteString(`<entry><author><name>`)
 				listContent.WriteString(data.Author.Username)
@@ -183,6 +184,7 @@ type text struct {
 	To      int
 }
 
+// переписать весь этот пиздец нахуй
 func ParseDescription(dscr devianter.Text) string {
 	var parsedDescription strings.Builder
 	TagBuilder := func(content string, tags ...string) string {
@@ -286,7 +288,7 @@ func ParseDescription(dscr devianter.Text) string {
 					parsedDescription.WriteString(`<a href="`)
 					parsedDescription.WriteString(ConvertDeviantArtUrlToSkunkyArt(d.Url))
 					parsedDescription.WriteString(`"><img width="50%" src="`)
-					parsedDescription.WriteString(ParseMedia(d.Media, d.Title))
+					parsedDescription.WriteString(ParseMedia(d.Media))
 					parsedDescription.WriteString(`" title="`)
 					parsedDescription.WriteString(d.Author.Username)
 					parsedDescription.WriteString(" - ")
