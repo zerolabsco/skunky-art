@@ -4,19 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"html/template"
 	"os"
 	"time"
 )
 
 func ExecuteCommandLineArguments() {
-	const helpmsg = `SkunkyArt v1.3.1 [CSS improvements for mobile and the strips on Daily Deviations]
+	var helpmsg = `SkunkyArt v{{.Version}} [{{.Description}}]
 Usage:
 	- [-c|--config] 	| path to config
 	- [-a|--add-instance]	| generates 'instances.json' and 'INSTANCES.md' files with ur instance
 	- [-h|--help]		| returns this message
 Example:
 	./skunkyart -c config.json
-Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3.1`
+Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v{{.Version}}`
 
 	a := os.Args[1:]
 	for n, x := range a {
@@ -28,7 +29,11 @@ Copyright lost+skunk, X11. https://git.macaw.me/skunky/skunkyart/src/tag/v1.3.1`
 				exit("Not enought arguments", 1)
 			}
 		case "-h", "--help":
-			exit(helpmsg, 0)
+			var buf bytes.Buffer
+			t := template.New("help")
+			t.Parse(helpmsg)
+			t.Execute(&buf, &Release)
+			exit(buf.String(), 0)
 		case "-a", "--add-instance":
 			addInstance()
 		}

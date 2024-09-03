@@ -13,10 +13,9 @@ var Host, Path string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
+		path = "/"
 		if l := len(CFG.URI); len(path) > l {
 			path = path[l-1:]
-		} else {
-			path = "/"
 		}
 
 		parsedpath := make(map[int]string)
@@ -54,44 +53,42 @@ func Router() {
 
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
-		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
-			Host = h[0] + "://" + r.Host
-		} else {
-			Host = "http://" + r.Host
-		}
-
 		Path = r.URL.Path
 		path := parsepath(Path)
-		// структура с функциями
-		var skunky skunkyart
+		Host = "http://" + r.Host
+		
+		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
+			Host = "https://" + r.Host
+		}
+
+		var skunky = skunkyart{Version: Release.Version}
+
+		arg := skunky.Args.Get
+		p, _ := strconv.Atoi(arg("p"))
+		
+		skunky.Endpoint = path[1]
+		skunky.API.main = &skunky
 		skunky.Writer = w
 		skunky.Args = r.URL.Query()
 		skunky.BasePath = CFG.URI
-
-		arg := skunky.Args.Get
 		skunky.QueryRaw = arg("q")
 		skunky.Query = u.QueryEscape(skunky.QueryRaw)
+		skunky.Page = p
 
 		if t := arg("type"); len(t) > 0 {
 			skunky.Type = rune(t[0])
 		}
-		p, _ := strconv.Atoi(arg("p"))
-		skunky.Page = p
 
 		if arg("atom") == "true" {
 			skunky.Atom = true
 		}
 
-		skunky.Endpoint = path[1]
-		skunky.API.skunkyartLink = &skunky
-
-		// пути
 		switch skunky.Endpoint {
-		default:
-			skunky.ReturnHTTPError(404)
-
+		// main
 		case "":
 			skunky.ExecuteTemplate("index.htm", "html", &CFG.URI)
+		case "about":
+			skunky.About()
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -101,33 +98,38 @@ func Router() {
 		case "group_user":
 			skunky.GRUser()
 
+		// media
 		case "media":
 			switch path[2] {
 			case "file":
 				if a := arg("filename"); a != "" {
-					var filename strings.Builder
-					filename.WriteString(`filename="`)
-					filename.WriteString(a)
-					filename.WriteString(`"`)
-					w.Header().Add("Content-Disposition", filename.String())
+					skunky.SetFilename(a)
 				}
 				skunky.DownloadAndSendMedia(path[3], next(path, 4))
 			case "emojitar":
 				skunky.Emojitar(path[3])
 			}
-		case "about":
-			skunky.About()
 		case "stylesheet":
 			w.Header().Add("content-type", "text/css")
 			w.Write(open("css/skunky.css"))
 		case "favicon.ico":
 			w.Write(open("images/logo.png"))
 
+		// API
 		case "api":
+			w.Header().Add("Content-Type", "application/json")
 			switch path[2] {
+				case "instance":
+					skunky.API.Info()
 				case "random":
 					skunky.API.Random()
+				default:
+					skunky.API.Error("Not Found", 404)
 			}
+
+			// 404
+			default:
+				skunky.ReturnHTTPError(404)
 		}
 	}
 

@@ -11,6 +11,11 @@ import (
 	"git.macaw.me/skunky/devianter"
 )
 
+var Release struct {
+	Version string
+	Description string
+}
+
 type cache_config struct {
 	Enabled        bool
 	Path           string

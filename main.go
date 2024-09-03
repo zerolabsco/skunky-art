@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	app.Release.Version = "1.3.2-alpha"
+	app.Release.Description = "Two API endpoints and template embedding into binary"
 	go app.RefreshInstances()
 
 	app.ExecuteCommandLineArguments()

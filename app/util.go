@@ -64,6 +64,7 @@ type skunkyart struct {
 	Query, QueryRaw    string
 
   API API
+  Version string
 
 	Templates struct {
 		About struct {
@@ -131,7 +132,7 @@ func UrlBuilder(strs ...string) string {
 	str.WriteString(CFG.URI)
 	for n, x := range strs {
 		str.WriteString(x)
-		if n+1 < l && !(strs[n+1][0] == '?' || strs[n+1][0] == '&') && !(x[0] == '?' || x[0] == '&') {
+		if n := n+1; n < l && len(strs[n]) != 0 && !(strs[n][0] == '?' || strs[n][0] == '&') && !(x[0] == '?' || x[0] == '&') {
 			str.WriteString("/")
 		}
 	}
@@ -151,6 +152,14 @@ func (s skunkyart) ReturnHTTPError(status int) {
 	msg.WriteString("</h1></html>")
 
 	wr(s.Writer, msg.String())
+}
+
+func (s skunkyart) SetFilename(name string) {
+	var filename strings.Builder
+	filename.WriteString(`filename="`)
+	filename.WriteString(name)
+	filename.WriteString(`"`)
+	s.Writer.Header().Add("Content-Disposition", filename.String())
 }
 
 type Downloaded struct {
@@ -189,6 +198,9 @@ func ParseMedia(media devianter.Media, thumb ...int) string {
 	if len(mediaUrl) != 0 && CFG.Proxy {
 		mediaUrl = mediaUrl[21:]
 		dot := strings.Index(mediaUrl, ".")
+		if filename == "" {
+			filename = "image.gif"
+		}
 		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", filename)
 	}
 	return mediaUrl

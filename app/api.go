@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"math/rand"
 	"strings"
 
@@ -8,27 +9,65 @@ import (
 )
 
 type API struct {
-  skunkyartLink *skunkyart
+  main *skunkyart
+}
+
+type info struct {
+  Version string `json:"version"`
+  Settings settingsParams `json:"settings"`
+}
+
+func (a API) Info() {
+  json, err := json.Marshal(info{
+    Version: a.main.Version,
+    Settings: settingsParams{
+      Nsfw: CFG.Nsfw,
+      Proxy: CFG.Proxy,
+    },
+  })
+  try(err)
+  a.main.Writer.Write(json)
+  return
+}
+
+func (a API) Error(description string, status int) {
+  a.main.Writer.WriteHeader(status)
+  var response strings.Builder
+  response.WriteString(`{"error":"`)
+  response.WriteString(description)
+  response.WriteString(`"}`)
+  wr(a.main.Writer, response.String())
 }
 
 func (a API) sendMedia(d *devianter.Deviation) {
   mediaUrl, name := devianter.UrlFromMedia(d.Media)
-  
-  var filename strings.Builder
-	filename.WriteString(`filename="`)
-  filename.WriteString(name)
-	filename.WriteString(`"`)
-	a.skunkyartLink.Writer.Header().Add("Content-Disposition", filename.String())
+	a.main.SetFilename(name)
 	
   if len(mediaUrl) != 0 {
     mediaUrl = mediaUrl[21:]
 		dot := strings.Index(mediaUrl, ".")
-    a.skunkyartLink.DownloadAndSendMedia(mediaUrl[:dot], mediaUrl[dot+11:])
+		a.main.Writer.Header().Del("Content-Type")
+    a.main.DownloadAndSendMedia(mediaUrl[:dot], mediaUrl[dot+11:])
   }
 }
 
+// TODO: сделать фильтры
 func (a API) Random() {
-  s, err := devianter.PerformSearch(string(rand.Intn(999)), rand.Intn(30), 'a')
-  try(err) 
-  a.sendMedia(&s.Results[rand.Intn(len(s.Results))])
+  for attempt := 1;; {
+    if attempt > 3 {
+      a.Error("Sorry, butt NSFW on this are disabled, and the instance failed to find a random art without NSFW", 500)
+    }
+    
+    s, err := devianter.PerformSearch(string(rand.Intn(999)), rand.Intn(30), 'a')
+    try(err)
+    deviation := &s.Results[rand.Intn(len(s.Results))]
+    
+    if deviation.NSFW && !CFG.Nsfw {
+      attempt++
+      continue
+    }
+    
+    a.sendMedia(deviation)
+    return
+  }    
 }

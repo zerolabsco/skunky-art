@@ -42,7 +42,6 @@ func (s skunkyart) GRUser() {
 					group.About.A = x.ModuleData.About
 					var about = &group.About.A
 					group.CreationDate = time.Unix(time.Now().Unix()-x.ModuleData.About.RegDate, 0).UTC().String()
-
 					group.About.DescriptionFormatted = ParseDescription(about.Description)
 
 					for _, val := range x.ModuleData.About.SocialLinks {
