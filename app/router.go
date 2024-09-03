@@ -13,9 +13,10 @@ var Host, Path string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
-		path = "/"
 		if l := len(CFG.URI); len(path) > l {
 			path = path[l-1:]
+		} else {
+			path = "/"
 		}
 
 		parsedpath := make(map[int]string)
