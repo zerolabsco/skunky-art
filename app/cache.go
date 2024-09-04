@@ -127,6 +127,7 @@ func InitCacheSystem() {
 					try(os.RemoveAll(fileName))
 				}
 			}
+			
 			if c.MaxSize != 0 && fileInfo.Size() > c.MaxSize {
 				try(os.RemoveAll(fileName))
 			}

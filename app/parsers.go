@@ -9,7 +9,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-func (s skunkyart) ParseComments(c devianter.Comments) string {
+func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) string {
+	if daError.RAW != nil {
+		return "Failed to fetch comments :("
+	}
+
 	var cmmts strings.Builder
 	replied := make(map[int]string)
 

@@ -64,13 +64,13 @@ func Router() {
 
 		var skunky = skunkyart{Version: Release.Version}
 
+		skunky.Args = r.URL.Query()
 		arg := skunky.Args.Get
 		p, _ := strconv.Atoi(arg("p"))
 		
 		skunky.Endpoint = path[1]
 		skunky.API.main = &skunky
 		skunky.Writer = w
-		skunky.Args = r.URL.Query()
 		skunky.BasePath = CFG.URI
 		skunky.QueryRaw = arg("q")
 		skunky.Query = u.QueryEscape(skunky.QueryRaw)
@@ -128,9 +128,9 @@ func Router() {
 					skunky.API.Error("Not Found", 404)
 			}
 
-			// 404
-			default:
-				skunky.ReturnHTTPError(404)
+		// 404
+		default:
+			skunky.ReturnHTTPError(404)
 		}
 	}
 

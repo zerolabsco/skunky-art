@@ -139,6 +139,19 @@ func UrlBuilder(strs ...string) string {
 	return str.String()
 }
 
+func (s skunkyart) Error(dAerr devianter.Error) {
+	s.Writer.WriteHeader(502)
+
+	var msg strings.Builder
+	msg.WriteString(`<html><link rel="stylesheet" href="`)
+	msg.WriteString(UrlBuilder("stylesheet"))
+	msg.WriteString(`" /><h3>DeviantArt error — '`)
+	msg.WriteString(dAerr.Error)
+	msg.WriteString("'</h3></html>")
+
+	wr(s.Writer, msg.String())
+}
+
 func (s skunkyart) ReturnHTTPError(status int) {
 	s.Writer.WriteHeader(status)
 
@@ -203,7 +216,7 @@ func ParseMedia(media devianter.Media, thumb ...int) string {
 		}
 		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", filename)
 	}
-	return mediaUrl
+	return ""
 }
 
 func ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {

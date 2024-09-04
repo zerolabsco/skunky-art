@@ -18,10 +18,15 @@ func (s skunkyart) GRUser() {
 	}
 
 	var g devianter.Group
+	var daError devianter.Error
 	g.Name = s.Query
 	var err error
-	s.Templates.GroupUser.GR, err = g.Get()
+	s.Templates.GroupUser.GR, err, daError = g.Get()
 	try(err)
+	if daError.RAW != nil {
+			s.Error(daError)
+			return
+	}
 
 	group := &s.Templates.GroupUser
 
@@ -63,12 +68,7 @@ func (s skunkyart) GRUser() {
 						group.About.Interests += interest.String()
 					}
 				}
-				group.About.Comments = s.ParseComments(devianter.GetComments(
-					strconv.Itoa(group.GR.Gruser.ID),
-					"",
-					s.Page,
-					4,
-				))
+				group.About.Comments = s.ParseComments(devianter.GetComments(strconv.Itoa(group.GR.Gruser.ID),"",s.Page,4))
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
@@ -98,10 +98,15 @@ func (s skunkyart) GRUser() {
 		}
 
 		if s.Type == 'f' {
-			content = g.Favourites(s.Page, all, folderid)
+			content, daError = g.Favourites(s.Page, all, folderid)
 		} else {
-			content, err = g.Gallery(s.Page, folderid)
+			content, err, daError = g.Gallery(s.Page, folderid)
 			try(err)
+		}
+
+		if daError.RAW != nil {
+			s.Error(daError)
+			return
 		}
 
 		if folderid > 0 || (s.Type == 'f' && all) {
@@ -172,19 +177,26 @@ func (s skunkyart) Deviation(author, postname string) {
 		return
 	}
 
+	var err devianter.Error
 	post := &s.Templates.Deviation
 
 	id := id_search[len(id_search)-1]
-	post.Post = devianter.GetDeviation(id, author)
+	post.Post, err = devianter.GetDeviation(id, author)
+	if err.RAW != nil {
+		s.Error(err)
+		return
+	}
+
+	if post.Post.Comments.Total <= 50 {
+		post.Post.Comments.Cursor = ""
+	}
 
 	if post.Post.Deviation.TextContent.Excerpt != "" {
 		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
 	} else {
 		post.Post.Description = ParseDescription(post.Post.Deviation.Extended.DescriptionText)
 	}
-	// время публикации
-	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
-	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
+
 	for _, x := range post.Post.Deviation.Extended.RelatedContent {
 		if len(x.Deviations) != 0 {
 			post.Related += s.DeviationList(x.Deviations, false)
@@ -203,17 +215,19 @@ func (s skunkyart) Deviation(author, postname string) {
 		post.Tags += tag.String()
 	}
 
-	if post.Post.Comments.Total <= 50 {
-		post.Post.Comments.Cursor = ""
-	}
-
 	post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
+	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
+	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
 
 	s.ExecuteTemplate("deviantion.htm", "html", &s)
 }
 
 func (s skunkyart) DD() {
-	dd := devianter.GetDailyDeviations(s.Page)
+	dd, err := devianter.GetDailyDeviations(s.Page)
+	if err.RAW != nil {
+			s.Error(err)
+			return
+	}
 	var strips strings.Builder
 	for _, x := range dd.Strips {
 		strips.WriteString(`<h3 class="`)
@@ -243,12 +257,13 @@ func (s skunkyart) Search() {
 	}
 
 	var err error
+	var daError devianter.Error
 	ss := &s.Templates.Search
 	switch s.Type {
 	case 'a', 't':
-		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type)
+		ss.Content, err, daError = devianter.PerformSearch(s.Query, s.Page, s.Type)
 	case 'g', 'f':
-		ss.Content, err = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
+		ss.Content, err, daError = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
 	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
 		var (
 			usernames = make(map[int]string)
@@ -297,6 +312,10 @@ func (s skunkyart) Search() {
 		return
 	}
 	try(err)
+	if daError.RAW != nil {
+		s.Error(daError)
+		return
+	}
 
 	if s.Type != 'r' {
 		ss.List = s.DeviationList(ss.Content.Results, false, DeviationList{

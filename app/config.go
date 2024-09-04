@@ -89,7 +89,7 @@ func ExecuteConfig() {
 
 				lifetimeParsed = duration * int64(num)
 			}
-			CFG.Cache.MaxSize /= 1024 ^ 2
+			CFG.Cache.MaxSize *= 1024 ^ 2
 			go InitCacheSystem()
 		}
 		devianter.UserAgent = CFG.UserAgent
