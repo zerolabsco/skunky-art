@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,8 +23,8 @@ func (s skunkyart) GRUser() {
 	s.Templates.GroupUser.GR, err, daError = g.Get()
 	try(err)
 	if daError.RAW != nil {
-			s.Error(daError)
-			return
+		s.Error(daError)
+		return
 	}
 
 	group := &s.Templates.GroupUser
@@ -68,7 +67,7 @@ func (s skunkyart) GRUser() {
 						group.About.Interests += interest.String()
 					}
 				}
-				group.About.Comments = s.ParseComments(devianter.GetComments(strconv.Itoa(group.GR.Gruser.ID),"",s.Page,4))
+				group.About.Comments = s.ParseComments(devianter.GetComments(strconv.Itoa(group.GR.Gruser.ID), "", s.Page, 4))
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
@@ -225,8 +224,8 @@ func (s skunkyart) Deviation(author, postname string) {
 func (s skunkyart) DD() {
 	dd, err := devianter.GetDailyDeviations(s.Page)
 	if err.RAW != nil {
-			s.Error(err)
-			return
+		s.Error(err)
+		return
 	}
 	var strips strings.Builder
 	for _, x := range dd.Strips {
@@ -312,12 +311,13 @@ func (s skunkyart) Search() {
 		return
 	}
 	try(err)
-	if daError.RAW != nil {
-		s.Error(daError)
-		return
-	}
 
 	if s.Type != 'r' {
+		if daError.RAW != nil {
+			s.Error(daError)
+			return
+		}
+
 		ss.List = s.DeviationList(ss.Content.Results, false, DeviationList{
 			Pages: ss.Content.Pages,
 			More:  ss.Content.HasMore,
@@ -338,11 +338,4 @@ func (s skunkyart) Emojitar(name string) {
 		s.ReturnHTTPError(404)
 	}
 	wr(s.Writer, ae)
-}
-
-func (s skunkyart) About() {
-	s.Templates.About.Nsfw = CFG.Nsfw
-	s.Templates.About.Proxy = CFG.Proxy
-	try(json.Unmarshal(instances, &s.Templates.About))
-	s.ExecuteTemplate("about.htm", "html", &s)
 }

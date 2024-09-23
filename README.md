@@ -7,6 +7,12 @@ Instances: [`INSTANCES.md`](/skunky/SkunkyArt/src/branch/master/INSTANCES.md)
 # EN 🇺🇸
 ## Description
 SkunkyArt 🦨 — alternative frontend for DevianArt, which works without JS.
+## Build (translated via DeepL)
+It is recommended to build with the 'embed' tag because it embeds the presets in the binary. If you plan to modify the templates, then do not use this tag. You can also add the `-ldflags "-w -s"` argument (GCCGO has a different name for it — `gccgoflags`) to reduce the size of the output file. Here is an example:
+
+`go build -tags embed -ldflags "-w -s"`
+
+Pre-compiled binaries can be found in the [Releases](https://git.macaw.me/skunky/skunkyart/releases) tab.
 ## Setup
 The sample config is in the `config.example.json` file. For custom config, use `--config` option.
 See the [`SETUP.md`](/skunky/SkunkyArt/src/branch/master/SETUP.md) file for more info about directives. 
@@ -21,6 +27,12 @@ To do this, you must either make a PR by adding your instance to the `instances.
 # RU 🇷🇺
 ## Описание
 SkunkyArt 🦨 — альтернативный фронтенд к DeviantArt, который полностью работает без JS (JavaScript).
+## Сборка
+Рекомендуется производить сборку с тегом 'embed', поскольку он встраивает заготовки в бинарный файл. Если вы планируете изменять заготовки, то не используйте этот тег. Также вы можете добавить аргумент `-ldflags "-w -s"` (у GCCGO он называется по-другому — `gccgoflags`) для уменьшения размера выходного файла. Вот пример:
+
+`go build -tags embed -ldflags "-w -s"`
+
+Готовые бинари находятся во вкладке [Releases](https://git.macaw.me/skunky/skunkyart/releases).
 ## Настройка
 Пример конфига находится в файле `config.example.json`. Чтобы указать свой конфиг, используйте cli-аргумент `--config`.
 См. [`SETUP-RU.md`](/skunky/SkunkyArt/src/branch/master/SETUP-RU.md) для информации о настройки фронтенда. 

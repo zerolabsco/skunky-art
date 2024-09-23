@@ -27,10 +27,10 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 	url.WriteString(".wixmp.com/")
 	url.WriteString(path)
 	if t := s.Args.Get("token"); t != "" {
-			url.WriteString("?token=")
-			url.WriteString(t)
+		url.WriteString("?token=")
+		url.WriteString(t)
 	}
-	
+
 	var response []byte
 
 	switch {
@@ -127,7 +127,7 @@ func InitCacheSystem() {
 					try(os.RemoveAll(fileName))
 				}
 			}
-			
+
 			if c.MaxSize != 0 && fileInfo.Size() > c.MaxSize {
 				try(os.RemoveAll(fileName))
 			}

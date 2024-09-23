@@ -56,13 +56,11 @@ func ExecuteConfig() {
 	if CFG.cfg != "" {
 		f, err := os.ReadFile(CFG.cfg)
 		tryWithExitStatus(err, 1)
-
 		tryWithExitStatus(json.Unmarshal(f, &CFG), 1)
 		if CFG.Cache.Enabled && !CFG.Proxy {
 			exit("Incompatible settings detected: cannot use caching media content without proxy", 1)
 		}
 
-		static.StaticPath = CFG.StaticPath
 		if CFG.Cache.Enabled {
 			if CFG.Cache.Lifetime != "" {
 				var duration int64
@@ -92,6 +90,13 @@ func ExecuteConfig() {
 			CFG.Cache.MaxSize *= 1024 ^ 2
 			go InitCacheSystem()
 		}
+
+		About = instanceAbout{
+			Proxy: CFG.Proxy,
+			Nsfw: CFG.Nsfw,
+		}
+		
+		static.StaticPath = CFG.StaticPath
 		devianter.UserAgent = CFG.UserAgent
 	}
 }

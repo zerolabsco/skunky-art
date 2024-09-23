@@ -1,6 +1,6 @@
 {
     "listen": "0.0.0.0:3003",
-    "uri": "/huy/",
+    "uri": "/",
     "cache": {
         "enabled": true,
         "path": "cache",
@@ -12,5 +12,5 @@
     "download-proxy": "http://127.0.0.1:8080",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
     "proxy": true,
-    "nsfw": false
+    "nsfw": true
 }

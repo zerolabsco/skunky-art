@@ -3,7 +3,7 @@ package app
 import (
 	"io"
 	"net/http"
-	u "net/url"
+	url "net/url"
 	"skunkyart/static"
 	"strconv"
 	"strings"
@@ -57,7 +57,7 @@ func Router() {
 		Path = r.URL.Path
 		path := parsepath(Path)
 		Host = "http://" + r.Host
-		
+
 		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
 			Host = "https://" + r.Host
 		}
@@ -67,13 +67,13 @@ func Router() {
 		skunky.Args = r.URL.Query()
 		arg := skunky.Args.Get
 		p, _ := strconv.Atoi(arg("p"))
-		
+
 		skunky.Endpoint = path[1]
 		skunky.API.main = &skunky
 		skunky.Writer = w
 		skunky.BasePath = CFG.URI
 		skunky.QueryRaw = arg("q")
-		skunky.Query = u.QueryEscape(skunky.QueryRaw)
+		skunky.Query = url.QueryEscape(skunky.QueryRaw)
 		skunky.Page = p
 
 		if t := arg("type"); len(t) > 0 {
@@ -84,12 +84,21 @@ func Router() {
 			skunky.Atom = true
 		}
 
+		if CFG.Proxy {
+			w.Header().Add("Content-Security-Policy", "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'")
+		} else {
+			w.Header().Add("Content-Security-Policy", "default-src 'self'; img-src 'self' *.wixmp.com; script-src 'none'; style-src 'self' 'unsafe-inline'")
+		}
+
+		w.Header().Add("X-Frame-Options", "DENY")
+
 		switch skunky.Endpoint {
 		// main
 		case "":
 			skunky.ExecuteTemplate("index.htm", "html", &CFG.URI)
 		case "about":
-			skunky.About()
+			skunky.Templates.About = About
+			skunky.ExecuteTemplate("about.htm", "html", &skunky)
 		case "post":
 			skunky.Deviation(path[2], path[3])
 		case "search":
@@ -120,12 +129,12 @@ func Router() {
 		case "api":
 			w.Header().Add("Content-Type", "application/json")
 			switch path[2] {
-				case "instance":
-					skunky.API.Info()
-				case "random":
-					skunky.API.Random()
-				default:
-					skunky.API.Error("Not Found", 404)
+			case "instance":
+				skunky.API.Info()
+			case "random":
+				skunky.API.Random()
+			default:
+				skunky.API.Error("Not Found", 404)
 			}
 
 		// 404

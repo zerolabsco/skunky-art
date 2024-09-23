@@ -18,7 +18,7 @@ Time units:
   * `lifetime` — Cached file life time, requires numeric value, followed by multiplicative suffix (see Time Units for details)
   * `max-size` — Maximum file size in megabytes
   * `update-interval` — Automatic rotation interval
-* `dirs-to-memory` — This setting determines which directories will be copied to RAM when SkunkyArt is started. Mandatory
+* `static-path` — This setting determines path to static, which will be copied to RAM when SkunkyArt is started. Useless if you're use binary compiled with 'embed' tag.
 * `download-proxy` — Proxy address for downloading files.
 * `user-agent` — String, which SkunkyArt uses as UA
 

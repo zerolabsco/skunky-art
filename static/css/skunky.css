@@ -19,11 +19,10 @@ header h1 {
 header form {
     align-self: center;
 }
-header {
+header, form {
     display: flex;
 }
 form {
-    font-size: 0;
     border: solid #164e3e 1px;
     max-width: fit-content;
 }
@@ -147,20 +146,17 @@ input:focus {
         font-size: 80%
     }
     
-    center form {
-        font-size: 60%
-    }
-    
-    header form {
-        font-size: 60%;
-        max-width: unset;
-        border: 0;
-    }
-    header, center {
+    header {
+        margin-left: 3%;
         text-align: center;
-        display: block;
+        display: inline-block;
         clear: both;
         font-size: 200%;
+    }
+
+    form {
+        font-size: 60%;
+        border: solid #164e3e 5px;
     }
     
     .content {

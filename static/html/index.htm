@@ -4,9 +4,75 @@
         <title>SkunkyArt</title>
         <link rel="stylesheet" href="{{.}}stylesheet"/>
         <link rel="icon" type="image/x-icon" href="{{.}}favicon.ico">
+        <meta name="viewport" content="width=device-width, height=device-height, initial-scale=0.4, user-scalable=no; user-scalable=0"/>
+
+        <style>
+            main {
+                display: flex;
+                max-width: fit-content;
+                position: absolute;
+                top: 50%;
+                right: 50%;
+                transform: translate(50%, -50%);
+            }
+            div {
+                transform: translate(0, 50%);
+                margin-left: 4%;
+                flex-basis: 100%;
+                height: 30%;
+                display: block;
+                max-width: fit-content;
+            }     
+            div h1, form {
+                margin: 0;
+            }
+            div form {
+                font-size: 100%;
+                max-width: 100%
+            }
+            div form input {
+                width: 100%
+            }
+            img {
+                width: 30%;
+                height: 30%;
+            }
+
+            @media (orientation: portrait) {
+                main {
+                    display: block;
+                    width: 200%;
+                }
+                img {
+                    width: 100%;
+                    height: 100%;
+                }
+                form {
+                    width: 200%;
+                }
+                div {
+                    margin: -25%;
+                    margin-top: auto;
+                    width: 200%;
+                }
+                div h1 {
+                    text-align: center;
+                }
+            }
+            @media (max-width: 1155px) and (orientation: landscape) {
+                img {
+                    width: 50%;
+                }
+                div {
+                    transform: none;
+                }
+            }
+        </style>
     </head>
     <main>
-        <center>
+        <img src="{{.}}favicon.ico" title="SkunkyArt logo" draggable="false">
+        <div>
+            <h1><a href="{{.}}dd">Daily Deviations</a> | <a href="{{.}}about">About</a></h1>
             <form method="get" action="{{.}}search">
                 <input type="text" name="q" placeholder="Search for ..." autocomplete="off" autocapitalize="none" spellcheck="false">
                 <select name="type">
@@ -16,7 +82,9 @@
                 </select>
                 <button type="submit">Search!</button>
             </form>
-            <h1><a href="{{.}}dd">Daily Deviations</a> | <a href="{{.}}about">About</a> | <a href="https://git.macaw.me/skunky/SkunkyArt" target="_blank">Source Code</a></h1>
-        </center>
+            <h1 style="margin-top: 5%; font-size: 200%; text-align: center;">
+                <a href="https://git.macaw.me/skunky/SkunkyArt" target="_blank" title="Source Code">SkunkyArt</a>
+            </h1>
+        </div>
     </main>
 </html>

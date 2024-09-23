@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -40,18 +41,26 @@ func restore() {
 }
 
 var instances []byte
+var About instanceAbout
 
 func RefreshInstances() {
 	for {
 		func() {
 			defer restore()
 			instances = Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body
+			try(json.Unmarshal(instances, &About))
 		}()
 		time.Sleep(1 * time.Hour)
 	}
 }
 
 // some crap for frontend
+type instanceAbout struct {
+	Proxy     bool
+	Nsfw      bool
+	Instances []settings
+}
+
 type skunkyart struct {
 	Writer http.ResponseWriter
 
@@ -63,15 +72,11 @@ type skunkyart struct {
 	BasePath, Endpoint string
 	Query, QueryRaw    string
 
-  API API
-  Version string
+	API     API
+	Version string
 
 	Templates struct {
-		About struct {
-			Proxy     bool
-			Nsfw      bool
-			Instances []settings
-		}
+		About instanceAbout
 
 		SomeList  string
 		DDStrips  string
@@ -132,7 +137,7 @@ func UrlBuilder(strs ...string) string {
 	str.WriteString(CFG.URI)
 	for n, x := range strs {
 		str.WriteString(x)
-		if n := n+1; n < l && len(strs[n]) != 0 && !(strs[n][0] == '?' || strs[n][0] == '&') && !(x[0] == '?' || x[0] == '&') {
+		if n := n + 1; n < l && len(strs[n]) != 0 && !(strs[n][0] == '?' || strs[n][0] == '&') && !(x[0] == '?' || x[0] == '&') {
 			str.WriteString("/")
 		}
 	}
@@ -215,6 +220,8 @@ func ParseMedia(media devianter.Media, thumb ...int) string {
 			filename = "image.gif"
 		}
 		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", filename)
+	} else if !CFG.Proxy {
+		return mediaUrl
 	}
 	return ""
 }

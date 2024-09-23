@@ -8,8 +8,8 @@
                 "clearnet": "https://skunky.ebloid.ru/art"
             },
             "settings": {
-                "nsfw": false,
-                "proxy": false
+                "proxy": true,
+                "nsfw": false
             }
         },
         {
@@ -19,8 +19,8 @@
                 "clearnet": "https://skunky.clovius.club"
             },
             "settings": {
-                "nsfw": true,
-                "proxy": true
+                "proxy": true,
+                "nsfw": true
             }
         },
         {
@@ -30,8 +30,8 @@
                 "clearnet": "https://skunky.bloat.cat"
             },
             "settings": {
-                "nsfw": true,
-                "proxy": true
+                "proxy": true,
+                "nsfw": true
             }
         },
         {
@@ -41,8 +41,8 @@
                 "clearnet": "https://skunkyart.lumaeris.com"
             },
             "settings": {
-                "nsfw": true,
-                "proxy": true
+                "proxy": true,
+                "nsfw": true
             }
         },
         {
@@ -52,8 +52,8 @@
                 "clearnet": "https://art.bloat.cat"
             },
             "settings": {
-                "nsfw": true,
-                "proxy": true
+                "proxy": true,
+                "nsfw": true
             }
         }
     ]
