@@ -11,8 +11,6 @@ import (
 
 var Host string
 
-// var Path *string
-
 func Router() {
 	parsepath := func(path string) map[int]string {
 		if l := len(CFG.URI); len(path) > l {
