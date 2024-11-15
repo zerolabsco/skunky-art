@@ -1,6 +1,10 @@
+> [!NOTE]
+> Currently, due to school, I cannot actively develop this project :(
+> However, this does not mean that development has stopped. Just wait for the summer. For questions, write either to the Matrix room or to me in DM.
+
 <img src="static/images/logo.png" alt="SkunkyArt" title="SkunkyArt Logo" width="20%" loading="lazy"/>
 
-[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:ebloid.ru)
+[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:ls.404.mn)
 
 Instances: [`INSTANCES.md`](/skunky/SkunkyArt/src/branch/master/INSTANCES.md)
 

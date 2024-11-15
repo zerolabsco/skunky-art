@@ -63,6 +63,7 @@ type instanceAbout struct {
 
 type skunkyart struct {
 	Writer http.ResponseWriter
+	_pth   string
 
 	Args url.Values
 	Page int
@@ -274,7 +275,7 @@ func (s skunkyart) NavBase(c DeviationList) string {
 	prevrev := func(msg string, page int, onpage bool) {
 		if !onpage {
 			list.WriteString(`<a href="`)
-			list.WriteString(Path)
+			list.WriteString(s._pth)
 			list.WriteString(`?p=`)
 			list.WriteString(strconv.Itoa(page))
 			if s.Type != 0 {

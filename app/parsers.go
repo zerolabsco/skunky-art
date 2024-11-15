@@ -46,7 +46,7 @@ func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) 
 
 		if x.Parent > 0 {
 			cmmts.WriteString(` In reply to <a href="`)
-			cmmts.WriteString(Path)
+			cmmts.WriteString(s._pth)
 			cmmts.WriteString("#")
 			cmmts.WriteString(strconv.Itoa(x.Parent))
 			cmmts.WriteString(`">`)

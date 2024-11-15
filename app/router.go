@@ -9,7 +9,9 @@ import (
 	"strings"
 )
 
-var Host, Path string
+var Host string
+
+// var Path *string
 
 func Router() {
 	parsepath := func(path string) map[int]string {
@@ -54,15 +56,14 @@ func Router() {
 
 	// функция, что управляет всем
 	handle := func(w http.ResponseWriter, r *http.Request) {
-		Path = r.URL.Path
-		path := parsepath(Path)
+		path := parsepath(r.URL.Path)
 		Host = "http://" + r.Host
-
 		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
 			Host = "https://" + r.Host
 		}
 
 		var skunky = skunkyart{Version: Release.Version}
+		skunky._pth = r.URL.Path
 
 		skunky.Args = r.URL.Query()
 		arg := skunky.Args.Get
