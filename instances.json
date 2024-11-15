@@ -1,11 +1,11 @@
 {
     "instances": [
         {
-            "title": "skunky.ebloid.ru",
-            "country": "Russia",
+            "title": "ls.404.mn",
+            "country": "Germany",
             "urls": {
-                "ygg": "http://[201:eba5:d1fc:bf7b:cfcb:a811:4b8b:7ea3]/art",
-                "clearnet": "https://skunky.ebloid.ru/art"
+                "ygg": "http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart",
+                "clearnet": "https://ls.404.mn/skunkyart"
             },
             "settings": {
                 "proxy": true,
