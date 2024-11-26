@@ -1,0 +1,12 @@
+services:
+  skunkyart:
+    container_name: skunkyart
+    restart: unless-stopped
+    build: .
+    ports:
+      - "127.0.0.1:3003:3003"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./config.json:/config.json:ro
+      - ./cache:/cache # Ensure cache folder has a 10000:10000 ownership.

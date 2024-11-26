@@ -1,0 +1,6 @@
+cache
+compose.yaml
+*.json
+LICENSE
+*.md
+services
