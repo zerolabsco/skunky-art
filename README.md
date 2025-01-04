@@ -25,6 +25,7 @@ To do this, you must either make a PR by adding your instance to the `instances.
 1. the Instance must not use Cloudflare.
 2. If your instance has modified source code, you need to publish it to any free platform. For example, Github and Gitlab are not.
 ## Acknowledgements
+* [vlnst](https://git.bloat.cat/vlnst) — wrote a Docker file.
 * [Лис⚛](https://go.kde.org/matrix/#/@fox:matrix.org) — helped me understand Go and gave me a lot of useful advice on this language.
 * [meoww](https://codeberg.org/meoww) — translated some sentences into English and wrote a service for openrc
 
