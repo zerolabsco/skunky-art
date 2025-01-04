@@ -1,11 +1,11 @@
 {
     "instances": [
         {
-            "title": "ls.404.mn",
+            "title": "lost-skunk.cc",
             "country": "Germany",
             "urls": {
                 "ygg": "http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart",
-                "clearnet": "https://ls.404.mn/skunkyart"
+                "clearnet": "https://lost-skunk.cc/skunkyart"
             },
             "settings": {
                 "proxy": true,

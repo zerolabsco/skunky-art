@@ -4,7 +4,7 @@
 
 <img src="static/images/logo.png" alt="SkunkyArt" title="SkunkyArt Logo" width="20%" loading="lazy"/>
 
-[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:ls.404.mn)
+[![Matrix room](https://img.shields.io/badge/matrix-000000?style=for-the-badge&logo=Matrix&logoColor=white)](https://go.kde.org/matrix/#/#skunkyart:gnulinux.club)
 
 Instances: [`INSTANCES.md`](/skunky/SkunkyArt/src/branch/master/INSTANCES.md)
 
@@ -45,5 +45,6 @@ SkunkyArt 🦨 — альтернативный фронтенд к DeviantArt, 
 1. Инстанс не должен использовать Cloudflare итп.
 2. Если ваш инстанс имеет модифицированный исходный код, то вам нужно опубликовать его на любую свободную площадку. Например, Github и Gitlab таковыми не являются.
 ## Благодарности
+* [vlnst](https://git.bloat.cat/vlnst) — написал Docker-файл.
 * [Лис⚛](https://go.kde.org/matrix/#/@fox:matrix.org) — помог разобраться в Go и много чего полезного посоветовал по этому языку.
 * [meoww](https://codeberg.org/meoww) — перевела некоторые предложения на английский язык и написала сервис для openrc
