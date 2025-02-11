@@ -13,13 +13,13 @@
             }
         },
         {
-            "title": "clovius.club",
-            "country": "Sweden",
+            "title": "orehus.club",
+            "country": "Germany",
             "urls": {
-                "clearnet": "https://skunky.clovius.club"
+                "clearnet": "https://sa.orehus.club"
             },
             "settings": {
-                "proxy": true,
+                "proxy": false,
                 "nsfw": true
             }
         },
