@@ -36,13 +36,12 @@ func (s skunkyart) GRUser() {
 		for _, x := range g.Gruser.Page.Modules {
 			switch x.Name {
 			case "about", "group_about":
-				switch g.Owner.Group {
-				case true:
+				if g.Owner.Group {
 					var about = &x.ModuleData.GroupAbout
 					group.Group = true
 					group.CreationDate = x.ModuleData.GroupAbout.FoundatedAt.UTC().String()
 					group.About.DescriptionFormatted = ParseDescription(about.Description)
-				case false:
+				} else if false {
 					group.About.A = x.ModuleData.About
 					var about = &group.About.A
 					group.CreationDate = time.Unix(time.Now().Unix()-x.ModuleData.About.RegDate, 0).UTC().String()
@@ -183,6 +182,14 @@ func (s skunkyart) Deviation(author, postname string) {
 	post.Post, err = devianter.GetDeviation(id, author)
 	if err.RAW != nil {
 		s.Error(err)
+		return
+	}
+
+	if post.Post.Deviation.NSFW {
+		s.Writer.WriteHeader(403)
+		wr(s.Writer, `<html><link rel="stylesheet" href="`+
+			UrlBuilder("stylesheet")+
+			`" /><h1>NSFW content are disabled on this instance.</h1></html>`)
 		return
 	}
 

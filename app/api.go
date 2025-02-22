@@ -41,12 +41,18 @@ func (a API) Error(description string, status int) {
 func (a API) sendMedia(d *devianter.Deviation) {
 	mediaUrl, name := devianter.UrlFromMedia(d.Media)
 	a.main.SetFilename(name)
-
 	if len(mediaUrl) != 0 {
+		return
+	}
+
+	if CFG.Proxy {
 		mediaUrl = mediaUrl[21:]
 		dot := strings.Index(mediaUrl, ".")
 		a.main.Writer.Header().Del("Content-Type")
 		a.main.DownloadAndSendMedia(mediaUrl[:dot], mediaUrl[dot+11:])
+	} else {
+		a.main.Writer.Header().Add("Location", mediaUrl)
+		a.main.Writer.WriteHeader(302)
 	}
 }
 

@@ -38,17 +38,7 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 		fileName := sha1.Sum([]byte(subdomain + path))
 		filePath := CFG.Cache.Path + "/" + hex.EncodeToString(fileName[:])
 
-		mx.Lock()
-		if tempFS[fileName] == nil {
-			tempFS[fileName] = &file{}
-		}
-		mx.Unlock()
-
-		if tempFS[fileName].Content != nil {
-			response = tempFS[fileName].Content
-			tempFS[fileName].Score += 2
-			break
-		} else {
+		c := func() {
 			file, err := os.Open(filePath)
 			if err != nil {
 				if dwnld := Download(url.String()); dwnld.Status == 200 && dwnld.Headers["Content-Type"][0][:5] == "image" {
@@ -63,27 +53,44 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 				try(e)
 				response = file
 			}
+		}
 
-			go func() {
-				defer restore()
+		if CFG.Cache.MemCache {
+			mx.Lock()
+			if tempFS[fileName] == nil {
+				tempFS[fileName] = &file{}
+			}
+			mx.Unlock()
 
-				mx.RLock()
-				tempFS[fileName].Content = response
-				mx.RUnlock()
+			if tempFS[fileName].Content != nil {
+				response = tempFS[fileName].Content
+				tempFS[fileName].Score += 2
+				break
+			} else {
+				c()
+				go func() {
+					defer restore()
 
-				for {
-					time.Sleep(1 * time.Minute)
+					mx.RLock()
+					tempFS[fileName].Content = response
+					mx.RUnlock()
 
-					mx.Lock()
-					if tempFS[fileName].Score <= 0 {
-						delete(tempFS, fileName)
+					for {
+						time.Sleep(1 * time.Minute)
+
+						mx.Lock()
+						if tempFS[fileName].Score <= 0 {
+							delete(tempFS, fileName)
+							mx.Unlock()
+							return
+						}
+						tempFS[fileName].Score--
 						mx.Unlock()
-						return
 					}
-					tempFS[fileName].Score--
-					mx.Unlock()
-				}
-			}()
+				}()
+			}
+		} else {
+			c()
 		}
 	case CFG.Proxy:
 		dwnld := Download(url.String())
@@ -112,6 +119,7 @@ func InitCacheSystem() {
 			println(err.Error())
 		}
 
+		var total int64
 		for _, file := range dir {
 			fileName := c.Path + "/" + file.Name()
 			fileInfo, err := file.Info()
@@ -128,9 +136,15 @@ func InitCacheSystem() {
 				}
 			}
 
-			if c.MaxSize != 0 && fileInfo.Size() > c.MaxSize {
-				try(os.RemoveAll(fileName))
-			}
+			total += fileInfo.Size()
+			// if c.MaxSize != 0 && fileInfo.Size() > c.MaxSize {
+			// 	try(os.RemoveAll(fileName))
+			// }
+		}
+
+		if c.MaxSize != 0 && total > c.MaxSize {
+			try(os.RemoveAll(c.Path))
+			os.Mkdir(c.Path, 0700)
 		}
 
 		time.Sleep(time.Second * time.Duration(c.UpdateInterval))

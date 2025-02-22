@@ -30,7 +30,7 @@
             </form> <h1>| {{.Templates.GroupUser.GR.Owner.Username}}</h1>
         </header>
         {{if eq .Type 'a'}}
-            {{if ne .Templates.GroupUser.About.BG ""}}
+            {{if and (and (ne .Templates.About.Nsfw true) (ne .Templates.GroupUser.About.BGMeta.NSFW true)) (ne .Templates.GroupUser.About.BG "")}}
             <a href="{{.Templates.GroupUser.About.BGMeta.Url}}" class="ubg"><img title="{{if ne .Templates.GroupUser.GR.Owner.Username .Templates.GroupUser.About.BGMeta.Author.Username}}
             {{.Templates.GroupUser.About.BGMeta.Author.Username}} - {{end}}{{.Templates.GroupUser.About.BGMeta.Title}}" src="{{.Templates.GroupUser.About.BG}}"></a>
             {{end}}

@@ -12,12 +12,13 @@ import (
 )
 
 var Release struct {
-	Version string
+	Version     string
 	Description string
 }
 
 type cache_config struct {
 	Enabled        bool
+	MemCache       bool `json:"memcache"`
 	Path           string
 	MaxSize        int64 `json:"max-size"`
 	Lifetime       string
@@ -93,9 +94,9 @@ func ExecuteConfig() {
 
 		About = instanceAbout{
 			Proxy: CFG.Proxy,
-			Nsfw: CFG.Nsfw,
+			Nsfw:  CFG.Nsfw,
 		}
-		
+
 		static.StaticPath = CFG.StaticPath
 		devianter.UserAgent = CFG.UserAgent
 	}
