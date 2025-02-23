@@ -185,7 +185,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		return
 	}
 
-	if post.Post.Deviation.NSFW {
+	if post.Post.Deviation.NSFW && !CFG.Nsfw {
 		s.Writer.WriteHeader(403)
 		wr(s.Writer, `<html><link rel="stylesheet" href="`+
 			UrlBuilder("stylesheet")+
