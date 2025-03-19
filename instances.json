@@ -55,6 +55,17 @@
                 "proxy": true,
                 "nsfw": true
             }
+        },
+        {
+            "title": "dc09.ru",
+            "country": "Russia",
+            "urls": {
+                "clearnet": "https://sa.dc09.ru"
+            },
+            "settings": {
+                "proxy": true,
+                "nsfw": false
+            }
         }
     ]
 }
