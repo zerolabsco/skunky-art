@@ -2,9 +2,10 @@ JSON variant should be used from master — https://git.macaw.me/skunky/SkunkyAr
 
 |Instance|Yggdrasil|I2P|Tor|NSFW|Proxifying|Modified Sources|Country|
 |:------:|:-------:|:-:|:-:|:--:|:--------:|:--------------:|:-----:|
-|[lost-skunk.cc](https://lost-skunk.cc/skunkyart)|[Yes](http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart)|No|No| No | Yes | No | Germany |
+|[lost-skunk.cc](https://lost-skunk.cc/skunkyart)|[Yes](http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart)|No|No| No | Yes | No | Finland |
 |[orehus.club](https://sa.orehus.club)|No|No|No| Yes | No | No | Germany |
 |[bloat.cat](https://skunky.bloat.cat)|No|No|No| Yes | Yes | No | Germany |
 |[lumaeris.com](https://skunkyart.lumaeris.com)|No|No|No| Yes | Yes | No | Germany |
 |[art.bloat.cat](https://art.bloat.cat)|No|No|No| Yes | Yes | No | Germany |
 |[dc09.ru](https://sa.dc09.ru)|No|No|No| No | Yes | No | Russia |
+|[opnxng.com](https://da.opnxng.com)|No|No|No| Yes | Yes | No | Singapore |

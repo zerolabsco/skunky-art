@@ -2,7 +2,7 @@
     "instances": [
         {
             "title": "lost-skunk.cc",
-            "country": "Germany",
+            "country": "Finland",
             "urls": {
                 "ygg": "http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart",
                 "clearnet": "https://lost-skunk.cc/skunkyart"
@@ -65,6 +65,17 @@
             "settings": {
                 "proxy": true,
                 "nsfw": false
+            }
+        },
+        {
+            "title": "opnxng.com",
+            "country": "Singapore",
+            "urls": {
+                "clearnet": "https://da.opnxng.com"
+            },
+            "settings": {
+                "proxy": true,
+                "nsfw": true
             }
         }
     ]
