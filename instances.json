@@ -1,80 +1,14 @@
 {
     "instances": [
         {
-            "title": "lost-skunk.cc",
-            "country": "Finland",
+            "title": "zerolabs.sh",
+            "country": "United States",
             "urls": {
-                "ygg": "http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart",
-                "clearnet": "https://lost-skunk.cc/skunkyart"
-            },
-            "settings": {
-                "proxy": true,
-                "nsfw": false
-            }
-        },
-        {
-            "title": "orehus.club",
-            "country": "Germany",
-            "urls": {
-                "clearnet": "https://sa.orehus.club"
+                "tor": "http://mplqs2jxkjd5wxak3zjv55oxyadf4vwzx6ksgj4ztftndjl6elgsf4qd.onion",
+                "clearnet": "https://art.zerolabs.sh"
             },
             "settings": {
                 "proxy": false,
-                "nsfw": true
-            }
-        },
-        {
-            "title": "bloat.cat",
-            "country": "Germany",
-            "urls": {
-                "clearnet": "https://skunky.bloat.cat"
-            },
-            "settings": {
-                "proxy": true,
-                "nsfw": true
-            }
-        },
-        {
-            "title": "lumaeris.com",
-            "country": "Germany",
-            "urls": {
-                "clearnet": "https://skunkyart.lumaeris.com"
-            },
-            "settings": {
-                "proxy": true,
-                "nsfw": true
-            }
-        },
-        {
-            "title": "art.bloat.cat",
-            "country": "Germany",
-            "urls": {
-                "clearnet": "https://art.bloat.cat"
-            },
-            "settings": {
-                "proxy": true,
-                "nsfw": true
-            }
-        },
-        {
-            "title": "dc09.ru",
-            "country": "Russia",
-            "urls": {
-                "clearnet": "https://sa.dc09.ru"
-            },
-            "settings": {
-                "proxy": true,
-                "nsfw": false
-            }
-        },
-        {
-            "title": "opnxng.com",
-            "country": "Singapore",
-            "urls": {
-                "clearnet": "https://da.opnxng.com"
-            },
-            "settings": {
-                "proxy": true,
                 "nsfw": true
             }
         }

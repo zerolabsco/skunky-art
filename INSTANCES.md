@@ -1,11 +1,6 @@
-JSON variant should be used from master — https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json
+JSON variant should be used from main:
+[instances.json](https://github.com/zerolabsco/SkunkyArt/blob/dev/instances.json)
 
 |Instance|Yggdrasil|I2P|Tor|NSFW|Proxifying|Modified Sources|Country|
 |:------:|:-------:|:-:|:-:|:--:|:--------:|:--------------:|:-----:|
-|[lost-skunk.cc](https://lost-skunk.cc/skunkyart)|[Yes](http://[201:f137:d1ac:920e:cd42:bfd1:1e83:da1d]/skunkyart)|No|No| No | Yes | No | Finland |
-|[orehus.club](https://sa.orehus.club)|No|No|No| Yes | No | No | Germany |
-|[bloat.cat](https://skunky.bloat.cat)|No|No|No| Yes | Yes | No | Germany |
-|[lumaeris.com](https://skunkyart.lumaeris.com)|No|No|No| Yes | Yes | No | Germany |
-|[art.bloat.cat](https://art.bloat.cat)|No|No|No| Yes | Yes | No | Germany |
-|[dc09.ru](https://sa.dc09.ru)|No|No|No| No | Yes | No | Russia |
-|[opnxng.com](https://da.opnxng.com)|No|No|No| Yes | Yes | No | Singapore |
+|[zerolabs.sh](https://art.zerolabs.sh)|No|No|[Yes](http://mplqs2jxkjd5wxak3zjv55oxyadf4vwzx6ksgj4ztftndjl6elgsf4qd.onion)| Yes | No | No | United States |
