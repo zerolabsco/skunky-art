@@ -1,23 +1,22 @@
 # v1.3.x
-* Почистить говнокод
-* Добавить фильтры поиска
-* ~~Сделать порт под FreeBSD~~ ✔️
-* **Доделать парсинг описания**
-* ~~Реализовать стрипы в ежедневных артах~~ ✔️
-* ~~Исправить баг с навигацией по страницам~~ ✔️
-* ~~Сделать нормальное отображение ошибок~~ ✔️
-* ~~Сделать единицы в конфиге более понятными~~ ✔️
-* Добавить чекер инстанса на работоспособность
-* ~~Добавить просмотр понравившихся артов пользователю~~ ✔️
-* Добавить возможность включить темплейты в бинарник [P]
-* ~~Реализовать миниатюры и оптимизировать CSS под маленькие экраны~~ ✔️
-* Написать Makefile и скрипт для автоматического развёртывания инстанса
-* Исправить баг с эмоджи, когда некоторые кастомные эмоции могут не отображаться
-* ~~Добавить аргумент &filename, который будет выдавать файл с нормально выглядещем именем~~ ✔️
-* ~~Улучшить систему кеширования: добавить рейтинг для удаления и копирование изображений в ОЗУ~~ ✔️
+* Clean up the crappy code
+* Add search filters
+* ~~Make a port for FreeBSD~~ ✔️
+* **Finish parsing the description**
+* ~~Implement strips in daily arts~~ ✔️
+* ~~Fix the page navigation bug~~ ✔️
+* ~~Make proper error display~~ ✔️
+* ~~Make the units in the config more understandable~~ ✔️
+* Add an instance checker for availability
+* ~~Add viewing of a user's liked arts~~ ✔️
+* Add the ability to embed templates into the binary [P]
+* ~~Implement thumbnails and optimize CSS for small screens~~ ✔️
+* Write a Makefile and a script for automatic instance deployment
+* Fix the emoji bug where some custom emotes may not display
+* ~~Add a &filename argument that will serve the file with a properly looking name~~ ✔️
+* ~~Improve the caching system: add a rating for eviction and copying images into RAM~~ ✔️
 # v1.4
-* Реализовать API
-* Реализовать темы
-* Перейти на арены в кеше
-* Реализовать многоязычный интерфейс
-
+* Implement an API
+* Implement themes
+* Switch to arenas in the cache
+* Implement a multilingual interface
