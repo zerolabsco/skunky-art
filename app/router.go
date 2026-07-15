@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-// Host is the scheme and host that generated links are built from. It is set per
-// request from the Host header and X-Forwarded-Proto.
-var Host string
-
 // Router registers the single catch-all handler that dispatches every path, then
 // serves until the process exits. It does not return on success.
 func Router() {
@@ -68,12 +64,18 @@ func Router() {
 	// the function that drives everything
 	handle := func(w http.ResponseWriter, r *http.Request) {
 		path := parsepath(r.URL.Path)
-		Host = "http://" + r.Host
+
+		// Per-request, not a package global: requests arrive concurrently on
+		// different hosts and ports (bots hitting a proxy's alternate ports, for
+		// one), and a shared global lets one request's host leak into another's
+		// rendered URLs. Those URLs then point at a different origin, which this
+		// handler's own default-src 'self' CSP blocks.
+		host := "http://" + r.Host
 		if h := r.Header["X-Forwarded-Proto"]; len(h) != 0 && h[0] == "https" {
-			Host = "https://" + r.Host
+			host = "https://" + r.Host
 		}
 
-		var skunky = skunkyart{Version: Release.Version}
+		var skunky = skunkyart{Version: Release.Version, Host: host}
 		skunky._pth = r.URL.Path
 
 		skunky.Args = r.URL.Query()

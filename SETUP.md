@@ -17,8 +17,17 @@ Time units:
   * `max-size` — Maximum file size in megabytes
   * `update-interval` — Automatic rotation interval
 * `static-path` — This setting determines path to static, which will be copied to RAM when SkunkyArt is started. Useless if you're use binary compiled with 'embed' tag.
-* `download-proxy` — Proxy address for downloading files.
+* `download-proxy` — Outbound proxy used when fetching media from DeviantArt's
+  CDN. Leave empty (`""`) unless you actually run a proxy: if this points at
+  something that isn't listening, every image 502s while pages still render,
+  because only media fetches go through it. Inside a container `127.0.0.1` is
+  the container itself, so a host-side proxy must be addressed by service name
+  or host IP, not loopback.
 * `user-agent` — String, which SkunkyArt uses as UA
+* `proxy` — Serve media through this instance instead of linking straight to
+  DeviantArt's CDN. Required by `cache`; when off, clients fetch images from
+  wixmp directly.
+* `nsfw` — Show mature content.
 
 # Setting up reverse proxy
 Pretty much business as usual, except for the [`X-Forwarded-Proto`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto) header setting.

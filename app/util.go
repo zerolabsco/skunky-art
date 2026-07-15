@@ -84,6 +84,11 @@ type skunkyart struct {
 	Type rune
 	Atom bool
 
+	// Host is the scheme and host this request arrived on, e.g.
+	// "https://art.example.com". It is per-request rather than global because
+	// concurrent requests can arrive on different hosts and ports.
+	Host string
+
 	BasePath, Endpoint string
 	Query, QueryRaw    string
 
@@ -147,13 +152,15 @@ func (s skunkyart) ExecuteTemplate(file, dir string, data any) {
 	wr(s.Writer, buf.String())
 }
 
-// URLBuilder joins strs into an absolute instance URL, prefixing the current
-// Host and configured URI and inserting slashes between path segments but not
-// before query separators.
-func URLBuilder(strs ...string) string {
+// URLBuilder joins strs into an absolute instance URL, prefixing host and the
+// configured URI and inserting slashes between path segments but not before
+// query separators. host is the request's own scheme and host: passing the
+// wrong one emits links to another origin, which the instance's own
+// Content-Security-Policy then blocks.
+func URLBuilder(host string, strs ...string) string {
 	var str strings.Builder
 	l := len(strs)
-	str.WriteString(Host)
+	str.WriteString(host)
 	str.WriteString(CFG.URI)
 	for n, x := range strs {
 		str.WriteString(x)
@@ -170,7 +177,7 @@ func (s skunkyart) Error(dAerr devianter.Error) {
 
 	var msg strings.Builder
 	msg.WriteString(`<html><link rel="stylesheet" href="`)
-	msg.WriteString(URLBuilder("stylesheet"))
+	msg.WriteString(URLBuilder(s.Host, "stylesheet"))
 	msg.WriteString(`" /><h3>DeviantArt error — '`)
 	msg.WriteString(dAerr.Error)
 	msg.WriteString("'</h3></html>")
@@ -189,7 +196,7 @@ func (s skunkyart) ReturnHTTPError(status int) {
 
 	var msg strings.Builder
 	msg.WriteString(`<html><link rel="stylesheet" href="`)
-	msg.WriteString(URLBuilder("stylesheet"))
+	msg.WriteString(URLBuilder(s.Host, "stylesheet"))
 	msg.WriteString(`" /><h1>`)
 	msg.WriteString(strconv.Itoa(status))
 	msg.WriteString(" - ")
@@ -264,7 +271,8 @@ func Download(urlString string) (d Downloaded) {
 // ParseMedia returns the URL to serve for media: a link back through this
 // instance's media proxy when proxying is on, or DeviantArt's own URL when it is
 // off. An optional thumb width selects a thumbnail instead of the full image.
-func ParseMedia(media devianter.Media, thumb ...int) string {
+// host is the request's scheme and host, as taken by URLBuilder.
+func ParseMedia(host string, media devianter.Media, thumb ...int) string {
 	mediaURL, filename := devianter.UrlFromMedia(media, thumb...)
 	if len(mediaURL) != 0 && CFG.Proxy {
 		mediaURL = mediaURL[21:]
@@ -272,7 +280,7 @@ func ParseMedia(media devianter.Media, thumb ...int) string {
 		if filename == "" {
 			filename = "image.gif"
 		}
-		return URLBuilder("media", "file", mediaURL[:dot], mediaURL[dot+11:], "&filename=", filename)
+		return URLBuilder(host, "media", "file", mediaURL[:dot], mediaURL[dot+11:], "&filename=", filename)
 	} else if !CFG.Proxy {
 		return mediaURL
 	}
@@ -281,27 +289,28 @@ func ParseMedia(media devianter.Media, thumb ...int) string {
 
 // ConvertDeviantArtURLToSkunkyArt rewrites a deviantart.com post link into the
 // equivalent link on this instance. It returns an empty string for URLs it does
-// not handle, including sta.sh links.
-func ConvertDeviantArtURLToSkunkyArt(url string) (output string) {
+// not handle, including sta.sh links. host is the request's scheme and host, as
+// taken by URLBuilder.
+func ConvertDeviantArtURLToSkunkyArt(host, url string) (output string) {
 	if len(url) > 32 && url[27:32] != "stash" {
 		url = url[27:]
 		firstshash := strings.Index(url, "/")
 		lastshash := firstshash + strings.Index(url[firstshash+1:], "/")
 		if lastshash != -1 {
-			output = URLBuilder("post", url[:firstshash], url[lastshash+2:])
+			output = URLBuilder(host, "post", url[:firstshash], url[lastshash+2:])
 		}
 	}
 	return
 }
 
 // BuildUserPlate renders the small avatar-and-username block linking to a user's
-// about page.
-func BuildUserPlate(name string) string {
+// about page. host is the request's scheme and host, as taken by URLBuilder.
+func BuildUserPlate(host, name string) string {
 	var htm strings.Builder
 	htm.WriteString(`<div class="user-plate"><img src="`)
-	htm.WriteString(URLBuilder("media", "emojitar", name, "?type=a"))
+	htm.WriteString(URLBuilder(host, "media", "emojitar", name, "?type=a"))
 	htm.WriteString(`"><a href="`)
-	htm.WriteString(URLBuilder("group_user", "?type=about&q=", name))
+	htm.WriteString(URLBuilder(host, "group_user", "?type=about&q=", name))
 	htm.WriteString(`">`)
 	htm.WriteString(name)
 	htm.WriteString(`</a></div>`)

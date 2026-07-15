@@ -42,12 +42,12 @@ func (s skunkyart) GRUser() {
 					var about = &x.ModuleData.GroupAbout
 					group.Group = true
 					group.CreationDate = x.ModuleData.GroupAbout.FoundatedAt.UTC().String()
-					group.About.DescriptionFormatted = ParseDescription(about.Description)
+					group.About.DescriptionFormatted = ParseDescription(s.Host, about.Description)
 				} else if false {
 					group.About.A = x.ModuleData.About
 					var about = &group.About.A
 					group.CreationDate = time.Unix(time.Now().Unix()-x.ModuleData.About.RegDate, 0).UTC().String()
-					group.About.DescriptionFormatted = ParseDescription(about.Description)
+					group.About.DescriptionFormatted = ParseDescription(s.Host, about.Description)
 
 					for _, val := range x.ModuleData.About.SocialLinks {
 						var social strings.Builder
@@ -72,12 +72,12 @@ func (s skunkyart) GRUser() {
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
-				group.About.BGMeta.Url = ConvertDeviantArtURLToSkunkyArt(group.About.BGMeta.Url)
-				group.About.BG = ParseMedia(group.About.BGMeta.Media)
+				group.About.BGMeta.Url = ConvertDeviantArtURLToSkunkyArt(s.Host, group.About.BGMeta.Url)
+				group.About.BG = ParseMedia(s.Host, group.About.BGMeta.Media)
 			case "group_admins":
 				var htm strings.Builder
 				for _, z := range x.ModuleData.GroupAdmins.Results {
-					htm.WriteString(BuildUserPlate(z.User.Username))
+					htm.WriteString(BuildUserPlate(s.Host, z.User.Username))
 				}
 				group.Admins += htm.String()
 			}
@@ -124,9 +124,9 @@ func (s skunkyart) GRUser() {
 
 							if !x.Thumb.NSFW || CFG.Nsfw {
 								folders.WriteString(`<a href="`)
-								folders.WriteString(ConvertDeviantArtURLToSkunkyArt(x.Thumb.Url))
+								folders.WriteString(ConvertDeviantArtURLToSkunkyArt(s.Host, x.Thumb.Url))
 								folders.WriteString(`"><img loading="lazy" src="`)
-								folders.WriteString(ParseMedia(x.Thumb.Media))
+								folders.WriteString(ParseMedia(s.Host, x.Thumb.Media))
 								folders.WriteString(`" title="`)
 								folders.WriteString(x.Thumb.Title)
 								folders.WriteString(`"></a>`)
@@ -191,7 +191,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	if post.Post.Deviation.NSFW && !CFG.Nsfw {
 		s.Writer.WriteHeader(403)
 		wr(s.Writer, `<html><link rel="stylesheet" href="`+
-			URLBuilder("stylesheet")+
+			URLBuilder(s.Host, "stylesheet")+
 			`" /><h1>NSFW content are disabled on this instance.</h1></html>`)
 		return
 	}
@@ -201,9 +201,9 @@ func (s skunkyart) Deviation(author, postname string) {
 	}
 
 	if post.Post.Deviation.TextContent.Excerpt != "" {
-		post.Post.Description = ParseDescription(post.Post.Deviation.TextContent)
+		post.Post.Description = ParseDescription(s.Host, post.Post.Deviation.TextContent)
 	} else {
-		post.Post.Description = ParseDescription(post.Post.Deviation.Extended.DescriptionText)
+		post.Post.Description = ParseDescription(s.Host, post.Post.Deviation.Extended.DescriptionText)
 	}
 
 	for _, x := range post.Post.Deviation.Extended.RelatedContent {
@@ -216,7 +216,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	for _, x := range post.Post.Deviation.Extended.Tags {
 		var tag strings.Builder
 		tag.WriteString(` <a href="`)
-		tag.WriteString(URLBuilder("search", "?q=", x.Name, "&type=tag"))
+		tag.WriteString(URLBuilder(s.Host, "search", "?q=", x.Name, "&type=tag"))
 		tag.WriteString(`">#`)
 		tag.WriteString(x.Name)
 		tag.WriteString("</a>")
@@ -226,7 +226,7 @@ func (s skunkyart) Deviation(author, postname string) {
 
 	post.Comments = s.ParseComments(devianter.GetComments(id, post.Post.Comments.Cursor, s.Page, 1))
 	post.StringTime = post.Post.Deviation.PublishedTime.UTC().String()
-	post.Post.IMG = ParseMedia(post.Post.Deviation.Media)
+	post.Post.IMG = ParseMedia(s.Host, post.Post.Deviation.Media)
 
 	s.ExecuteTemplate("deviantion.htm", "html", &s)
 }
@@ -312,7 +312,7 @@ func (s skunkyart) Search() {
 		if l := len(usernames); l != 0 {
 			ss.List += `<div class="content plates">`
 			for x := range len(usernames) {
-				ss.List += BuildUserPlate(usernames[x])
+				ss.List += BuildUserPlate(s.Host, usernames[x])
 			}
 			ss.List += `</div>`
 			ss.List += s.NavBase(DeviationList{

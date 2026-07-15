@@ -32,9 +32,9 @@ func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) 
 		cmmts.WriteString(`"><p id="`)
 		cmmts.WriteString(strconv.Itoa(x.ID))
 		cmmts.WriteString(`"><img src="`)
-		cmmts.WriteString(URLBuilder("media", "emojitar", x.User.Username, "?type=a"))
+		cmmts.WriteString(URLBuilder(s.Host, "media", "emojitar", x.User.Username, "?type=a"))
 		cmmts.WriteString(`" width="30px" height="30px"><a href="`)
-		cmmts.WriteString(URLBuilder("group_user", "?q=", x.User.Username, "&type=a"))
+		cmmts.WriteString(URLBuilder(s.Host, "group_user", "?q=", x.User.Username, "&type=a"))
 		cmmts.WriteString(`"><b`)
 		cmmts.WriteString(` class="`)
 		if x.User.Banned {
@@ -64,7 +64,7 @@ func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) 
 		cmmts.WriteString(x.Posted.UTC().String())
 		cmmts.WriteString("]<p>")
 
-		cmmts.WriteString(ParseDescription(x.TextContent))
+		cmmts.WriteString(ParseDescription(s.Host, x.TextContent))
 		cmmts.WriteString("<p>👍: ")
 		cmmts.WriteString(strconv.Itoa(x.Likes))
 		cmmts.WriteString(" ⏩: ")
@@ -92,7 +92,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 
 	for i, l := 0, len(devs); i < l; i++ {
 		data := &devs[i]
-		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !data.NSFW || CFG.Nsfw {
+		if preview, fullview := ParseMedia(s.Host, data.Media, 320), ParseMedia(s.Host, data.Media); !data.NSFW || CFG.Nsfw {
 			if allowAtom && s.Atom {
 				s.Writer.Header().Add("Content-Type", "application/atom+xml")
 				id := strconv.Itoa(data.ID)
@@ -101,7 +101,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 				listContent.WriteString(`</name></author><title>`)
 				listContent.WriteString(data.Title)
 				listContent.WriteString(`</title><link rel="alternate" type="text/html" href="`)
-				listContent.WriteString(URLBuilder("post", data.Author.Username, "atom-"+id))
+				listContent.WriteString(URLBuilder(s.Host, "post", data.Author.Username, "atom-"+id))
 				listContent.WriteString(`"/><id>`)
 				listContent.WriteString(id)
 				listContent.WriteString(`</id><published>`)
@@ -112,11 +112,11 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 				listContent.WriteString(`</media:title><media:thumbinal url="`)
 				listContent.WriteString(preview)
 				listContent.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
-				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(data.Url))
+				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(s.Host, data.Url))
 				listContent.WriteString(`"><img src="`)
 				listContent.WriteString(fullview)
 				listContent.WriteString(`"/></a><p>`)
-				listContent.WriteString(ParseDescription(data.TextContent))
+				listContent.WriteString(ParseDescription(s.Host, data.TextContent))
 				listContent.WriteString(`</p></div></content></entry>`)
 			} else {
 				listContent.WriteString(`<div class="block">`)
@@ -130,7 +130,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 					listContent.WriteString(`<h1>[ TEXT ]</h1>`)
 				}
 				listContent.WriteString(`<br><a href="`)
-				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(data.Url))
+				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(s.Host, data.Url))
 				listContent.WriteString(`">`)
 				listContent.WriteString(data.Author.Username)
 				listContent.WriteString(" - ")
@@ -166,7 +166,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 		list.WriteString(`</title>`)
 
 		list.WriteString(`<link rel="alternate" href="`)
-		list.WriteString(Host)
+		list.WriteString(s.Host)
 		list.WriteString(`"/>`)
 
 		list.WriteString(listContent.String())
@@ -201,9 +201,10 @@ type text struct {
 // ParseDescription renders a DeviantArt description into HTML, handling both the
 // Draft.js-style JSON payload and the plain HTML markup DeviantArt returns, and
 // rewriting embedded links and artwork references to point at this instance.
+// host is the request's scheme and host, as taken by URLBuilder.
 //
 // TODO: rewrite this whole mess.
-func ParseDescription(dscr devianter.Text) string {
+func ParseDescription(host string, dscr devianter.Text) string {
 	var parsedDescription strings.Builder
 	TagBuilder := func(content string, tags ...string) string {
 		l := len(tags)
@@ -308,9 +309,9 @@ func ParseDescription(dscr devianter.Text) string {
 				if len(x.EntityRanges) != 0 {
 					d := entities[x.EntityRanges[0].Key]
 					parsedDescription.WriteString(`<a href="`)
-					parsedDescription.WriteString(ConvertDeviantArtURLToSkunkyArt(d.Url))
+					parsedDescription.WriteString(ConvertDeviantArtURLToSkunkyArt(host, d.Url))
 					parsedDescription.WriteString(`"><img width="50%" src="`)
-					parsedDescription.WriteString(ParseMedia(d.Media))
+					parsedDescription.WriteString(ParseMedia(host, d.Media))
 					parsedDescription.WriteString(`" title="`)
 					parsedDescription.WriteString(d.Author.Username)
 					parsedDescription.WriteString(" - ")
@@ -372,7 +373,7 @@ func ParseDescription(dscr devianter.Text) string {
 						switch a.Key {
 						case "src":
 							if len(a.Val) > 9 && a.Val[8:9] == "e" {
-								uri = URLBuilder("media", "emojitar", a.Val[37:len(a.Val)-4], "?type=e")
+								uri = URLBuilder(host, "media", "emojitar", a.Val[37:len(a.Val)-4], "?type=e")
 							}
 						case "title":
 							title = a.Val
