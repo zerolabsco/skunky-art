@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 	"golang.org/x/net/html"
 )
 
@@ -20,7 +20,7 @@ func (s skunkyart) GRUser() {
 	var daError devianter.Error
 	g.Name = s.Query
 	var err error
-	s.Templates.GroupUser.GR, err, daError = g.Get()
+	s.Templates.GroupUser.GR, daError, err = g.Get()
 	try(err)
 	if daError.RAW != nil {
 		s.Error(daError)
@@ -98,7 +98,7 @@ func (s skunkyart) GRUser() {
 		if s.Type == 'f' {
 			content, daError = g.Favourites(s.Page, all, folderid)
 		} else {
-			content, err, daError = g.Gallery(s.Page, folderid)
+			content, daError, err = g.Gallery(s.Page, folderid)
 			try(err)
 		}
 
@@ -267,9 +267,9 @@ func (s skunkyart) Search() {
 	ss := &s.Templates.Search
 	switch s.Type {
 	case 'a', 't':
-		ss.Content, err, daError = devianter.PerformSearch(s.Query, s.Page, s.Type)
+		ss.Content, daError, err = devianter.PerformSearch(s.Query, s.Page, s.Type)
 	case 'g', 'f':
-		ss.Content, err, daError = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
+		ss.Content, daError, err = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
 	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
 		var (
 			usernames = make(map[int]string)

@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 )
 
 type API struct {
@@ -63,7 +63,7 @@ func (a API) Random() {
 			a.Error("Sorry, butt NSFW on this are disabled, and the instance failed to find a random art without NSFW", 500)
 		}
 
-		s, err, daErr := devianter.PerformSearch(string(rand.Intn(999)), rand.Intn(30), 'a')
+		s, daErr, err := devianter.PerformSearch(string(rand.Intn(999)), rand.Intn(30), 'a')
 		try(err)
 		if daErr.RAW != nil {
 			continue

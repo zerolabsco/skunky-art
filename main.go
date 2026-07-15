@@ -5,7 +5,7 @@ import (
 	"skunkyart/static"
 	"time"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 )
 
 func main() {

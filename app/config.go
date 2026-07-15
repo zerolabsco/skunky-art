@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 )
 
 var Release struct {

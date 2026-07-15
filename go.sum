@@ -1,4 +1,4 @@
-git.macaw.me/skunky/devianter v0.2.6-0.20240904171839-b3c99749f133 h1:ziutYUyDmdbsptR8Lj4lNmZUxfgwGsNbHM1mO9ATph8=
-git.macaw.me/skunky/devianter v0.2.6-0.20240904171839-b3c99749f133/go.mod h1:ZLn527xBlnpXrUB1B8z/MhyeiWVK4nPWjyfnhWOE8Is=
+github.com/zerolabsco/devianter v0.3.1 h1:QS28ATASgas8IejXpekWU1Z4//1Gr/tuqdl5BRAqItE=
+github.com/zerolabsco/devianter v0.3.1/go.mod h1:3su99kASJEhNcJpLMO35Si2qDGTZ3bfKLOK/ymitneM=
 golang.org/x/net v0.27.0 h1:5K3Njcw06/l2y9vpGCSdcxWOYHOUk3dVNGDXN+FvAys=
 golang.org/x/net v0.27.0/go.mod h1:dDi0PyhWNoiUOrAS8uXv/vnScO4wnHQO4mj9fn/RytE=
