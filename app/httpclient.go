@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,10 @@ var (
 	daMaxConcurrent = 2                      // max simultaneous in-flight DA requests
 )
 
+// downloadTimeout bounds a single outbound fetch end to end, so that a stalled
+// CDN connection cannot pin a request handler open indefinitely.
+const downloadTimeout = 60 * time.Second
+
 type daThrottle struct {
 	base http.RoundTripper
 	sem  chan struct{}
@@ -30,6 +35,8 @@ type daThrottle struct {
 	last time.Time
 }
 
+// RoundTrip applies the rate and concurrency limits to DeviantArt requests and
+// passes everything else straight through to the base transport.
 func (t *daThrottle) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Only throttle DeviantArt's WAF-protected API host; let everything else fly.
 	if !strings.Contains(req.URL.Hostname(), "deviantart.com") {
@@ -51,18 +58,51 @@ func (t *daThrottle) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(req)
 }
 
+// baseTransport is the tuned transport installed by InstallDAThrottle, kept so
+// that per-client transports (see ProxiedTransport) inherit the same timeouts
+// instead of silently bypassing them.
+var baseTransport *http.Transport
+
+// tunedTransport clones the current default transport, preserving its Proxy
+// (ProxyFromEnvironment) and connection-pool defaults, and tightens timeouts to
+// bound hung connections.
+func tunedTransport() *http.Transport {
+	base, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		// Already wrapped, or a non-standard transport is installed. Start from a
+		// fresh one rather than panicking on a type assertion.
+		base = &http.Transport{Proxy: http.ProxyFromEnvironment}
+	}
+
+	t := base.Clone()
+	t.TLSHandshakeTimeout = 10 * time.Second
+	t.ResponseHeaderTimeout = 20 * time.Second
+	t.ExpectContinueTimeout = 2 * time.Second
+	return t
+}
+
 // InstallDAThrottle wraps http.DefaultTransport with the rate/concurrency limits and
 // timeouts above. Call once at startup, before any DeviantArt request is made.
 func InstallDAThrottle() {
-	// Clone the default transport so we keep its Proxy (ProxyFromEnvironment) and
-	// connection-pool defaults, then tighten timeouts to bound hung connections.
-	base := http.DefaultTransport.(*http.Transport).Clone()
-	base.TLSHandshakeTimeout = 10 * time.Second
-	base.ResponseHeaderTimeout = 20 * time.Second
-	base.ExpectContinueTimeout = 2 * time.Second
+	baseTransport = tunedTransport()
+	http.DefaultTransport = throttled(baseTransport)
+}
 
-	http.DefaultTransport = &daThrottle{
-		base: base,
-		sem:  make(chan struct{}, daMaxConcurrent),
+// throttled wraps base with the DeviantArt rate and concurrency limits.
+func throttled(base http.RoundTripper) http.RoundTripper {
+	return &daThrottle{base: base, sem: make(chan struct{}, daMaxConcurrent)}
+}
+
+// ProxiedTransport returns a throttled transport routing through proxy. Downloads
+// configured with download-proxy go through here so they keep the timeouts and
+// limits that InstallDAThrottle installs on the default transport.
+func ProxiedTransport(proxy *url.URL) http.RoundTripper {
+	var base *http.Transport
+	if baseTransport != nil {
+		base = baseTransport.Clone()
+	} else {
+		base = tunedTransport()
 	}
+	base.Proxy = http.ProxyURL(proxy)
+	return throttled(base)
 }

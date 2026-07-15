@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// ExecuteCommandLineArguments parses argv, applying the flags that override
+// config and running one-shot commands such as --help and --add-instance. Some
+// of those commands exit the process rather than return.
 func ExecuteCommandLineArguments() {
 	var helpmsg = `SkunkyArt v{{.Version}} [{{.Description}}]
 Usage:
@@ -31,8 +34,12 @@ Copyright lost+skunk, X11. https://github.com/zerolabsco/skunky-art/releases/tag
 		case "-h", "--help":
 			var buf bytes.Buffer
 			t := template.New("help")
-			t.Parse(helpmsg)
-			t.Execute(&buf, &Release)
+			tryWithExitStatus(func() error {
+				if _, err := t.Parse(helpmsg); err != nil {
+					return err
+				}
+				return t.Execute(&buf, &Release)
+			}(), 1)
 			exit(buf.String(), 0)
 		case "-a", "--add-instance":
 			addInstance()
@@ -79,13 +86,19 @@ func addInstance() {
 	var settingsVar struct {
 		Instances []settings `json:"instances"`
 	}
-	instancesJson, err := os.OpenFile("instances.json", os.O_CREATE|os.O_WRONLY, 0644)
-	try(err)
-	defer instancesJson.Close()
+	// 0644: both files are committed to the repository and are meant to be
+	// world-readable, so gosec's 0600 default does not apply.
+	instancesJSON, err := os.OpenFile("instances.json", os.O_CREATE|os.O_WRONLY, 0644) //nolint:gosec // G302
+	if err != nil {
+		exit(err.Error(), 1)
+	}
+	defer func() { try(instancesJSON.Close()) }()
 
-	instancesFile, err := os.OpenFile("INSTANCES.md", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	try(err)
-	defer instancesFile.Close()
+	instancesFile, err := os.OpenFile("INSTANCES.md", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //nolint:gosec // G302
+	if err != nil {
+		exit(err.Error(), 1)
+	}
+	defer func() { try(instancesFile.Close()) }()
 
 	for {
 		if string(instances) == "" {
@@ -113,7 +126,7 @@ func addInstance() {
 			j, err := json.MarshalIndent(&settingsVar, "", "    ")
 			try(err)
 
-			instancesJson.Write(j)
+			try(func() error { _, err := instancesJSON.Write(j); return err }())
 
 			settingsVar := &settingsVar.Instances[len(settingsVar.Instances)-1]
 			var mdstr bytes.Buffer
@@ -157,7 +170,7 @@ func addInstance() {
 			mdstr.WriteString(settingsVar.Country)
 			mdstr.WriteString("|")
 
-			instancesFile.Write(mdstr.Bytes())
+			try(func() error { _, err := instancesFile.Write(mdstr.Bytes()); return err }())
 			break
 		}
 		time.Sleep(500 * time.Millisecond)

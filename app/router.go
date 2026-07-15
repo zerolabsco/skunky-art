@@ -7,10 +7,15 @@ import (
 	"skunkyart/static"
 	"strconv"
 	"strings"
+	"time"
 )
 
+// Host is the scheme and host that generated links are built from. It is set per
+// request from the Host header and X-Forwarded-Proto.
 var Host string
 
+// Router registers the single catch-all handler that dispatches every path, then
+// serves until the process exits. It does not return on success.
 func Router() {
 	parsepath := func(path string) map[int]string {
 		if l := len(CFG.URI); len(path) > l {
@@ -33,22 +38,30 @@ func Router() {
 		return parsedpath
 	}
 
-	next := func(path map[int]string, from int) (out string) {
+	next := func(path map[int]string, from int) string {
+		var out strings.Builder
 		for x, l := from, len(path)-1; x <= l; x++ {
-			out += path[x]
+			out.WriteString(path[x])
 			if x != l {
-				out += "/"
+				out.WriteString("/")
 			}
 		}
-		return
+		return out.String()
 	}
 
 	open := func(name string) []byte {
 		file, err := static.Templates.Open(name)
-		try(err)
-		fileReaded, err := io.ReadAll(file)
-		try(err)
+		if err != nil {
+			try(err)
+			return nil
+		}
+		defer func() { try(file.Close()) }()
 
+		fileReaded, err := io.ReadAll(file)
+		if err != nil {
+			try(err)
+			return nil
+		}
 		return fileReaded
 	}
 
@@ -119,10 +132,10 @@ func Router() {
 				skunky.Emojitar(path[3])
 			}
 		case "stylesheet":
-			w.Header().Add("content-type", "text/css")
-			w.Write(open("css/skunky.css"))
+			w.Header().Add("Content-Type", "text/css")
+			_, _ = w.Write(open("css/skunky.css"))
 		case "favicon.ico":
-			w.Write(open("images/logo.png"))
+			_, _ = w.Write(open("images/logo.png"))
 
 		// API
 		case "api":
@@ -145,5 +158,15 @@ func Router() {
 	http.HandleFunc("/", handle)
 	println("SkunkyArt is listening on", CFG.Listen)
 
-	tryWithExitStatus(http.ListenAndServe(CFG.Listen, nil), 1)
+	// Explicit timeouts: the bare http.ListenAndServe has none, so a slow client
+	// can hold a connection (and its handler) open indefinitely. WriteTimeout is
+	// generous because media proxying streams large files through a handler.
+	srv := &http.Server{
+		Addr:              CFG.Listen,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	tryWithExitStatus(srv.ListenAndServe(), 1)
 }

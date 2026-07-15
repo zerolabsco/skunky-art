@@ -9,6 +9,8 @@ import (
 	"github.com/zerolabsco/devianter"
 )
 
+// API serves the JSON endpoints under /api, backed by the request its main
+// field points at.
 type API struct {
 	main *skunkyart
 }
@@ -18,6 +20,7 @@ type info struct {
 	Settings settingsParams `json:"settings"`
 }
 
+// Info responds with this instance's version and its proxy/NSFW settings.
 func (a API) Info() {
 	json, err := json.Marshal(info{
 		Version: a.main.Version,
@@ -27,9 +30,10 @@ func (a API) Info() {
 		},
 	})
 	try(err)
-	a.main.Writer.Write(json)
+	_, _ = a.main.Writer.Write(json)
 }
 
+// Error responds with a JSON error body and the given HTTP status.
 func (a API) Error(description string, status int) {
 	a.main.Writer.WriteHeader(status)
 	var response strings.Builder
@@ -40,33 +44,38 @@ func (a API) Error(description string, status int) {
 }
 
 func (a API) sendMedia(d *devianter.Deviation) {
-	mediaUrl, name := devianter.UrlFromMedia(d.Media)
+	mediaURL, name := devianter.UrlFromMedia(d.Media)
 	a.main.SetFilename(name)
-	if len(mediaUrl) != 0 {
+	if len(mediaURL) != 0 {
 		return
 	}
 
 	if CFG.Proxy {
-		mediaUrl = mediaUrl[21:]
-		dot := strings.Index(mediaUrl, ".")
+		mediaURL = mediaURL[21:]
+		dot := strings.Index(mediaURL, ".")
 		a.main.Writer.Header().Del("Content-Type")
-		a.main.DownloadAndSendMedia(mediaUrl[:dot], mediaUrl[dot+11:])
+		a.main.DownloadAndSendMedia(mediaURL[:dot], mediaURL[dot+11:])
 	} else {
-		a.main.Writer.Header().Add("Location", mediaUrl)
+		a.main.Writer.Header().Add("Location", mediaURL)
 		a.main.Writer.WriteHeader(302)
 	}
 }
 
-// TODO: add filters
+// Random responds with a random artwork's media, retrying a bounded number of
+// times when a search comes back empty or NSFW-filtered.
+//
+// TODO: add filters.
 func (a API) Random() {
 	// Bounded retries: the loop used to be unbounded, and the DeviantArt-error
 	// path never incremented attempt, so a single request could spin forever
 	// hammering the API (and get this instance's egress IP banned).
 	const maxAttempts = 3
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	// math/rand is deliberate: this picks a random artwork to show, which is not
+	// a security decision and does not need a cryptographic source.
+	for range maxAttempts {
 		// strconv.Itoa, not string(): string(65) is "A", not "65".
-		s, daErr, err := devianter.PerformSearch(strconv.Itoa(rand.Intn(999)), rand.Intn(30), 'a')
+		s, daErr, err := devianter.PerformSearch(strconv.Itoa(rand.Intn(999)), rand.Intn(30), 'a') //nolint:gosec // G404
 		try(err)
 		if daErr.RAW != nil {
 			continue
@@ -77,7 +86,7 @@ func (a API) Random() {
 			continue
 		}
 
-		deviation := &s.Results[rand.Intn(len(s.Results))]
+		deviation := &s.Results[rand.Intn(len(s.Results))] //nolint:gosec // G404: see above
 		if deviation.NSFW && !CFG.Nsfw {
 			continue
 		}
