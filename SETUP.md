@@ -12,7 +12,10 @@ Time units:
 * `uri` — Instance URI. Example: `"uri":"/art/"` -> https://skunky.ebloid.ru/art/
 * `cache` — Caching system; default is off.
   * `enabled` — Caching system state, requires boolean value
-  * `path` — Path to cache directory, requires absolute filesystem path
+  * `path` — Path to cache directory. It must be writable by the user SkunkyArt
+    runs as, and SkunkyArt refuses to start if it is not. The container image
+    runs as uid 10000, so a bind-mounted cache needs
+    `sudo chown -R 10000:10000 <dir>` on the host.
   * `lifetime` — Cached file life time, requires numeric value, followed by multiplicative suffix (see Time Units for details)
   * `max-size` — Maximum file size in megabytes
   * `update-interval` — Automatic rotation interval

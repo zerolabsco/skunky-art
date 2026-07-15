@@ -59,7 +59,9 @@ services:
       - no-new-privileges:true
     volumes:
       - ./config.json:/config.json:ro
-      - ./cache:/cache            # ensure this dir is owned 10000:10000
+      # The image runs as uid 10000, so the host cache dir must be writable by it:
+      #   mkdir -p cache && sudo chown -R 10000:10000 cache
+      - ./cache:/cache
     environment:
       # Empty by default = direct. Set SKUNKY_PROXY in .env to route via the VPN.
       - HTTPS_PROXY=${SKUNKY_PROXY:-}

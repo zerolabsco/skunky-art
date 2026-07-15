@@ -58,9 +58,28 @@ var CFG = config{
 
 var lifetimeParsed int64
 
+// checkCacheWritable creates the cache directory if it is missing and confirms
+// this process can actually write into it, returning the error that a real cache
+// write would hit.
+//
+// An unwritable cache directory is otherwise a silent cliff: every media request
+// still succeeds by re-downloading from the CDN, so the only symptom is one
+// "permission denied" line per request and a cache that never fills.
+func checkCacheWritable(path string) error {
+	if err := os.MkdirAll(path, 0700); err != nil {
+		return err
+	}
+	probe := path + "/.skunkyart-write-probe"
+	if err := os.WriteFile(probe, nil, 0600); err != nil {
+		return err
+	}
+	return os.Remove(probe)
+}
+
 // ExecuteConfig loads the config file into CFG, validates it, and starts the
 // cache rotation loop if caching is on. It exits the process on a config that
-// cannot be read or that asks for caching without proxying.
+// cannot be read, that asks for caching without proxying, or that points caching
+// at a directory this process cannot write.
 func ExecuteConfig() {
 	if CFG.cfg != "" {
 		f, err := os.ReadFile(CFG.cfg)
@@ -71,6 +90,14 @@ func ExecuteConfig() {
 		}
 
 		if CFG.Cache.Enabled {
+			if err := checkCacheWritable(CFG.Cache.Path); err != nil {
+				exit("Cache directory is not writable by this process (uid "+
+					strconv.Itoa(os.Getuid())+"): "+err.Error()+
+					"\nGrant that uid write access to the directory, or set cache.enabled to false."+
+					"\nThe official container image runs as uid 10000, so a bind-mounted cache needs:"+
+					"\n  chown -R 10000:10000 <cache dir on the host>", 1)
+			}
+
 			if CFG.Cache.Lifetime != "" {
 				var duration int64
 				day := 24 * time.Hour.Milliseconds()

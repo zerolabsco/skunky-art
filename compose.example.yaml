@@ -14,4 +14,7 @@ services:
       - no-new-privileges:true
     volumes:
       - ./config.json:/config.json:ro
-      - ./cache:/cache # Ensure cache folder has a 10000:10000 ownership.
+      # The image runs as uid 10000, so the host cache dir must be writable by it:
+      #   mkdir -p cache && sudo chown -R 10000:10000 cache
+      # Without this the container exits at startup telling you the same thing.
+      - ./cache:/cache
