@@ -88,7 +88,9 @@ func ExecuteConfig() {
 
 				lifetimeParsed = duration * int64(num)
 			}
-			CFG.Cache.MaxSize *= 1024 ^ 2
+			// max-size is documented in megabytes. This was 1024^2, which in Go is
+			// XOR (1026), not exponentiation — so the cap was ~1000x too small.
+			CFG.Cache.MaxSize *= 1024 * 1024
 			go InitCacheSystem()
 		}
 
