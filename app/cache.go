@@ -18,8 +18,68 @@ type file struct {
 	Content []byte
 }
 
+// tempFS is the in-memory media cache, guarded by mx. A plain Mutex rather than
+// an RWMutex on purpose: every operation here mutates something (a read bumps
+// Score), and the previous code took an RLock to write, which is not exclusive.
 var tempFS = make(map[[20]byte]*file)
-var mx = &sync.RWMutex{}
+var mx sync.Mutex
+
+// memGet returns the cached body for key and raises its score so that popular
+// entries outlive the janitor, or nil when the entry is absent or still empty.
+func memGet(key [20]byte) []byte {
+	mx.Lock()
+	defer mx.Unlock()
+
+	f := tempFS[key]
+	if f == nil || f.Content == nil {
+		return nil
+	}
+	f.Score += 2
+	return f.Content
+}
+
+// memPut caches body under key. An empty body is not cached, so a failed fetch
+// cannot poison the cache with a zero-length image.
+func memPut(key [20]byte, body []byte) {
+	if len(body) == 0 {
+		return
+	}
+
+	mx.Lock()
+	defer mx.Unlock()
+	tempFS[key] = &file{Content: body}
+}
+
+// InitMemCacheJanitor ages the in-memory cache forever, dropping entries whose
+// score has run out. Run it in its own goroutine, once, and only when memcache
+// is enabled.
+//
+// One loop ages the whole map. The previous design started a goroutine per
+// cached file, each looping until its own entry was evicted, and each touching
+// the map without holding mx — a concurrent map read and write, which the Go
+// runtime treats as a fatal error that recover cannot catch.
+func InitMemCacheJanitor() {
+	for {
+		time.Sleep(1 * time.Minute)
+		ageMemCache()
+	}
+}
+
+// ageMemCache runs one round of aging: every entry loses a point, and entries
+// that are already out of points are dropped. An entry starts at zero, so a body
+// nothing asks for again is gone within a round.
+func ageMemCache() {
+	mx.Lock()
+	defer mx.Unlock()
+
+	for k, f := range tempFS {
+		if f.Score <= 0 {
+			delete(tempFS, k)
+			continue
+		}
+		f.Score--
+	}
+}
 
 // DownloadAndSendMedia proxies one image from DeviantArt's wixmp CDN to the
 // client, serving it from the on-disk or in-memory cache when enabled. It
@@ -39,66 +99,25 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 
 	switch {
 	case CFG.Cache.Enabled:
-		fileName := sha1.Sum([]byte(subdomain + path)) //nolint:gosec // G401: cache-key hash, not a security primitive
-		filePath := CFG.Cache.Path + "/" + hex.EncodeToString(fileName[:])
+		key := sha1.Sum([]byte(subdomain + path)) //nolint:gosec // G401: cache-key hash, not a security primitive
+		filePath := CFG.Cache.Path + "/" + hex.EncodeToString(key[:])
 
-		c := func() {
-			// filePath is built from a SHA-1 of the request, not from user input,
-			// so it cannot escape the cache directory.
-			file, err := os.Open(filePath) //nolint:gosec // G304: path is a hash, not user-controlled
-			if err != nil {
-				dwnld := Download(url.String())
-				if dwnld.Status == 200 && strings.HasPrefix(dwnld.Headers.Get("Content-Type"), "image") {
-					response = dwnld.Body
-					try(os.WriteFile(filePath, response, 0600))
-				} else {
-					s.ReturnHTTPError(dwnld.Status)
-					return
-				}
-			} else {
-				defer func() { try(file.Close()) }()
-				file, e := io.ReadAll(file)
-				try(e)
-				response = file
+		if CFG.Cache.MemCache {
+			if cached := memGet(key); cached != nil {
+				response = cached
+				break
 			}
 		}
 
+		body, ok := s.loadOrFetchMedia(filePath, url.String())
+		if !ok {
+			// loadOrFetchMedia has already written the error response.
+			return
+		}
+		response = body
+
 		if CFG.Cache.MemCache {
-			mx.Lock()
-			if tempFS[fileName] == nil {
-				tempFS[fileName] = &file{}
-			}
-			mx.Unlock()
-
-			if tempFS[fileName].Content != nil {
-				response = tempFS[fileName].Content
-				tempFS[fileName].Score += 2
-				break
-			} else {
-				c()
-				go func() {
-					defer restore()
-
-					mx.RLock()
-					tempFS[fileName].Content = response
-					mx.RUnlock()
-
-					for {
-						time.Sleep(1 * time.Minute)
-
-						mx.Lock()
-						if tempFS[fileName].Score <= 0 {
-							delete(tempFS, fileName)
-							mx.Unlock()
-							return
-						}
-						tempFS[fileName].Score--
-						mx.Unlock()
-					}
-				}()
-			}
-		} else {
-			c()
+			memPut(key, response)
 		}
 	case CFG.Proxy:
 		dwnld := Download(url.String())
@@ -113,6 +132,34 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 	}
 
 	_, _ = s.Writer.Write(response)
+}
+
+// loadOrFetchMedia returns the media body for filePath, preferring the on-disk
+// cache and falling back to fetching url, which it then writes back to the
+// cache. It reports false when it has already written an error response, so the
+// caller must not write anything further.
+func (s skunkyart) loadOrFetchMedia(filePath, url string) ([]byte, bool) {
+	// filePath is built from a SHA-1 of the request, not from user input, so it
+	// cannot escape the cache directory.
+	if f, err := os.Open(filePath); err == nil { //nolint:gosec // G304: path is a hash, not user-controlled
+		defer func() { try(f.Close()) }()
+
+		if body, err := io.ReadAll(f); err == nil {
+			return body, true
+		} else {
+			// An unreadable cache entry is not fatal; re-fetch it instead.
+			try(err)
+		}
+	}
+
+	dwnld := Download(url)
+	if dwnld.Status != 200 || !strings.HasPrefix(dwnld.Headers.Get("Content-Type"), "image") {
+		s.ReturnHTTPError(dwnld.Status)
+		return nil, false
+	}
+
+	try(os.WriteFile(filePath, dwnld.Body, 0600))
+	return dwnld.Body, true
 }
 
 // InitCacheSystem runs the cache rotation loop forever, evicting files past

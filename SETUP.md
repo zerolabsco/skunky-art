@@ -16,6 +16,10 @@ Time units:
     runs as, and SkunkyArt refuses to start if it is not. The container image
     runs as uid 10000, so a bind-mounted cache needs
     `sudo chown -R 10000:10000 <dir>` on the host.
+  * `memcache` — Also keep served media in RAM, on top of the on-disk cache.
+    Entries are scored by how often they are requested and dropped once they go
+    a round unused. The cache is bounded only by that scoring, so leave it off
+    unless you have RAM to spare for your traffic.
   * `lifetime` — Cached file life time, requires numeric value, followed by multiplicative suffix (see Time Units for details)
   * `max-size` — Maximum file size in megabytes
   * `update-interval` — Automatic rotation interval
