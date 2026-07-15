@@ -57,7 +57,7 @@ func (a API) sendMedia(d *devianter.Deviation) {
 	}
 }
 
-// TODO: сделать фильтры
+// TODO: add filters
 func (a API) Random() {
 	// Bounded retries: the loop used to be unbounded, and the DeviantArt-error
 	// path never incremented attempt, so a single request could spin forever

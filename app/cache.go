@@ -1,4 +1,4 @@
-// TODO: реализовать кеширование JSON и почистить код
+// TODO: implement JSON caching and clean up the code
 package app
 
 import (

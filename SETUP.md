@@ -1,5 +1,3 @@
-[Версия на русском языке 🇷🇺](SETUP-RU.md)
-
 # Units
 Maximum file size in megabytes, requires numeric value.<br>
 Time units:

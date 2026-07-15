@@ -91,7 +91,7 @@ func try(err error) {
 	}
 }
 
-/* сделано на основе https://github.com/psanford/memfs; требуется для корректной работы templates.ParseFS */
+/* based on https://github.com/psanford/memfs; required for templates.ParseFS to work correctly */
 type fileInfo struct {
 	name string
 }

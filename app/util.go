@@ -261,13 +261,13 @@ func GetValueOfTag(t *html.Tokenizer) string {
 	}
 }
 
-// навигация по страницам
+// page navigation
 type DeviationList struct {
 	Pages int
 	More  bool
 }
 
-// FIXME: на некоротрых артах первая страница может вызывать полное отсутствие панели навигации.
+// FIXME: on some artworks the first page can make the navigation panel disappear entirely.
 func (s skunkyart) NavBase(c DeviationList) string {
 	var list strings.Builder
 

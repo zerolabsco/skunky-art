@@ -52,7 +52,7 @@ func Router() {
 		return fileReaded
 	}
 
-	// функция, что управляет всем
+	// the function that drives everything
 	handle := func(w http.ResponseWriter, r *http.Request) {
 		path := parsepath(r.URL.Path)
 		Host = "http://" + r.Host

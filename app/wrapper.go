@@ -167,7 +167,7 @@ func (s skunkyart) GRUser() {
 	}
 }
 
-// посты
+// posts
 func (s skunkyart) Deviation(author, postname string) {
 	id_search := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
 	if len(id_search) < 1 {
@@ -209,7 +209,7 @@ func (s skunkyart) Deviation(author, postname string) {
 		}
 	}
 
-	// хештэги
+	// hashtags
 	for _, x := range post.Post.Deviation.Extended.Tags {
 		var tag strings.Builder
 		tag.WriteString(` <a href="`)
@@ -270,7 +270,7 @@ func (s skunkyart) Search() {
 		ss.Content, daError, err = devianter.PerformSearch(s.Query, s.Page, s.Type)
 	case 'g', 'f':
 		ss.Content, daError, err = devianter.PerformSearch(s.Query, s.Page, s.Type, s.Args.Get("usr"))
-	case 'r': // скраппер, поскольку девиантартовцы зажопили гостевое API для поиска групп
+	case 'r': // scraper, since DeviantArt withholds the guest API for group search
 		var (
 			usernames = make(map[int]string)
 			url       strings.Builder

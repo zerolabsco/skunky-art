@@ -188,7 +188,7 @@ type text struct {
 	To      int
 }
 
-// переписать весь этот пиздец нахуй
+// TODO: rewrite this whole mess
 func ParseDescription(dscr devianter.Text) string {
 	var parsedDescription strings.Builder
 	TagBuilder := func(content string, tags ...string) string {
