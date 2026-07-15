@@ -20,7 +20,7 @@ Usage:
 	- [-h|--help]		| returns this message
 Example:
 	./skunkyart -c config.json
-Copyright lost+skunk, X11. https://github.com/zerolabsco/skunky-art/releases/tag/v{{.Version}}`
+Copyright lost+skunk and zerolabs, X11. https://github.com/zerolabsco/skunky-art/releases/tag/v{{.Version}}`
 
 	a := os.Args[1:]
 	for n, x := range a {
