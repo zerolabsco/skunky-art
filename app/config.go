@@ -127,6 +127,9 @@ func ExecuteConfig() {
 			// XOR (1026), not exponentiation — so the cap was ~1000x too small.
 			CFG.Cache.MaxSize *= 1024 * 1024
 			go InitCacheSystem()
+			if CFG.Cache.MemCache {
+				go InitMemCacheJanitor()
+			}
 		}
 
 		About = instanceAbout{

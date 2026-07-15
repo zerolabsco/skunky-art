@@ -20,6 +20,9 @@ can also add the `-ldflags "-w -s"` argument (GCCGO has a different name for it
 
 `go build -tags embed -ldflags "-w -s"`
 
+Such a build reports its version as `dev`. To stamp one in, as the release
+workflow does from the git tag, add `-X main.version=<version>` to the ldflags.
+
 ## Docker
 Prebuilt multi-arch images (`linux/amd64`, `linux/arm64`) are published to GHCR
 on every release tag:

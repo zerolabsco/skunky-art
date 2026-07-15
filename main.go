@@ -8,8 +8,17 @@ import (
 	"github.com/zerolabsco/devianter"
 )
 
+// version is the release this binary was built from. The release workflow links
+// it in from the git tag so that --help and /api/instance cannot drift from the
+// tag the image was built at:
+//
+//	go build -ldflags "-X main.version=1.3.7"
+//
+// A plain `go build` leaves it as "dev".
+var version = "dev"
+
 func main() {
-	app.Release.Version = "1.3.2"
+	app.Release.Version = version
 	app.Release.Description = "Two API endpoints and template embedding into binary"
 
 	app.ExecuteCommandLineArguments()
