@@ -1,5 +1,4 @@
 //go:build !embed
-// +build !embed
 
 package static
 
@@ -11,6 +10,7 @@ import (
 	"time"
 )
 
+// Templates is the in-memory asset filesystem populated by CopyTemplatesToMemory.
 var Templates FS
 
 type file struct {
@@ -21,8 +21,12 @@ type file struct {
 
 var templateNames = []string{}
 var templates = make(map[string][]file)
+
+// StaticPath is the directory assets are read from at startup.
 var StaticPath string
 
+// CopyTemplatesToMemory reads every asset under StaticPath into memory. It exits
+// the process on failure, since the frontend cannot serve anything without them.
 func CopyTemplatesToMemory() {
 	baseDir, err := os.ReadDir(StaticPath)
 	try(err)
@@ -53,8 +57,11 @@ func CopyTemplatesToMemory() {
 	}
 }
 
+// FS serves the in-memory assets. It implements the subset of fs.FS that
+// template.ParseFS requires.
 type FS struct{}
 
+// Open returns the asset stored at name, or an fs.PathError if there is none.
 func (FS) Open(name string) (fs.File, error) {
 	for i, l := 0, len(templateNames); i < l; i++ {
 		for _, x := range templates[templateNames[i]] {
@@ -69,6 +76,8 @@ func (FS) Open(name string) (fs.File, error) {
 	return nil, &fs.PathError{}
 }
 
+// Glob returns the paths of every asset in the directory named by pattern's
+// first segment, or an fs.PathError if none match.
 func (FS) Glob(pattern string) ([]string, error) {
 	trimmed := strings.Split(pattern, "/")
 	var matches = []string{}
@@ -91,47 +100,60 @@ func try(err error) {
 	}
 }
 
-/* based on https://github.com/psanford/memfs; required for templates.ParseFS to work correctly */
+// fileInfo is a minimal fs.FileInfo. Assets are held in memory and never stat'd
+// for anything but their name, so the remaining fields report fixed values.
+//
+// Based on https://github.com/psanford/memfs; required for templates.ParseFS to
+// work correctly.
 type fileInfo struct {
 	name string
 }
 
+// Name returns the asset's path.
 func (fi fileInfo) Name() string {
 	return fi.name
 }
 
+// Size reports a fixed placeholder size; callers here never use it.
 func (fi fileInfo) Size() int64 {
 	return 4096
 }
 
+// Mode reports no mode bits: in-memory assets have no filesystem permissions.
 func (fileInfo) Mode() fs.FileMode {
 	return 0
 }
 
+// ModTime reports the zero time, as in-memory assets are never modified.
 func (fileInfo) ModTime() time.Time {
 	return time.Time{}
 }
 
+// IsDir always reports false: only files are stored, never directories.
 func (fileInfo) IsDir() bool {
 	return false
 }
 
-func (fileInfo) Sys() interface{} {
+// Sys returns nil, as there is no underlying data source.
+func (fileInfo) Sys() any {
 	return nil
 }
 
+// File is a read-once handle to an in-memory asset.
 type File struct {
 	name    string
 	content *bytes.Buffer
 	closed  bool
 }
 
+// Stat returns the file's fileInfo. It never fails.
 func (f *File) Stat() (fs.FileInfo, error) {
 	return fileInfo{
 		name: f.name,
 	}, nil
 }
 
+// Read consumes the asset's contents, reporting fs.ErrClosed once closed.
 func (f *File) Read(b []byte) (int, error) {
 	if f.closed {
 		return 0, fs.ErrClosed
@@ -139,6 +161,7 @@ func (f *File) Read(b []byte) (int, error) {
 	return f.content.Read(b)
 }
 
+// Close marks the file closed. Closing twice reports fs.ErrClosed.
 func (f *File) Close() error {
 	if f.closed {
 		return fs.ErrClosed

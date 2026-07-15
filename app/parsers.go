@@ -9,6 +9,9 @@ import (
 	"golang.org/x/net/html"
 )
 
+// ParseComments renders a comment thread, nesting replies under the comment they
+// answer. It returns a placeholder message rather than failing if the upstream
+// fetch errored.
 func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) string {
 	if daError.RAW != nil {
 		return "Failed to fetch comments :("
@@ -29,9 +32,9 @@ func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) 
 		cmmts.WriteString(`"><p id="`)
 		cmmts.WriteString(strconv.Itoa(x.ID))
 		cmmts.WriteString(`"><img src="`)
-		cmmts.WriteString(UrlBuilder("media", "emojitar", x.User.Username, "?type=a"))
+		cmmts.WriteString(URLBuilder("media", "emojitar", x.User.Username, "?type=a"))
 		cmmts.WriteString(`" width="30px" height="30px"><a href="`)
-		cmmts.WriteString(UrlBuilder("group_user", "?q=", x.User.Username, "&type=a"))
+		cmmts.WriteString(URLBuilder("group_user", "?q=", x.User.Username, "&type=a"))
 		cmmts.WriteString(`"><b`)
 		cmmts.WriteString(` class="`)
 		if x.User.Banned {
@@ -76,6 +79,9 @@ func (s skunkyart) ParseComments(c devianter.Comments, daError devianter.Error) 
 	return cmmts.String()
 }
 
+// DeviationList renders devs as an HTML grid, or as an Atom feed when the
+// request asked for one and allowAtom permits it. NSFW entries are dropped
+// unless the instance allows them. Passing content adds a navigation bar.
 func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, content ...DeviationList) string {
 	if s.Atom && s.Page > 1 {
 		s.ReturnHTTPError(400)
@@ -86,16 +92,16 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 
 	for i, l := 0, len(devs); i < l; i++ {
 		data := &devs[i]
-		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !(data.NSFW && !CFG.Nsfw) {
+		if preview, fullview := ParseMedia(data.Media, 320), ParseMedia(data.Media); !data.NSFW || CFG.Nsfw {
 			if allowAtom && s.Atom {
-				s.Writer.Header().Add("Content-type", "application/atom+xml")
+				s.Writer.Header().Add("Content-Type", "application/atom+xml")
 				id := strconv.Itoa(data.ID)
 				listContent.WriteString(`<entry><author><name>`)
 				listContent.WriteString(data.Author.Username)
 				listContent.WriteString(`</name></author><title>`)
 				listContent.WriteString(data.Title)
 				listContent.WriteString(`</title><link rel="alternate" type="text/html" href="`)
-				listContent.WriteString(UrlBuilder("post", data.Author.Username, "atom-"+id))
+				listContent.WriteString(URLBuilder("post", data.Author.Username, "atom-"+id))
 				listContent.WriteString(`"/><id>`)
 				listContent.WriteString(id)
 				listContent.WriteString(`</id><published>`)
@@ -106,7 +112,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 				listContent.WriteString(`</media:title><media:thumbinal url="`)
 				listContent.WriteString(preview)
 				listContent.WriteString(`"/></media:group><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><a href="`)
-				listContent.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
+				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(data.Url))
 				listContent.WriteString(`"><img src="`)
 				listContent.WriteString(fullview)
 				listContent.WriteString(`"/></a><p>`)
@@ -124,7 +130,7 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 					listContent.WriteString(`<h1>[ TEXT ]</h1>`)
 				}
 				listContent.WriteString(`<br><a href="`)
-				listContent.WriteString(ConvertDeviantArtUrlToSkunkyArt(data.Url))
+				listContent.WriteString(ConvertDeviantArtURLToSkunkyArt(data.Url))
 				listContent.WriteString(`">`)
 				listContent.WriteString(data.Author.Username)
 				listContent.WriteString(" - ")
@@ -149,11 +155,12 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 		list.WriteString(`<?xml version="1.0" encoding="UTF-8"?><feed xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">`)
 
 		list.WriteString(`<title>`)
-		if s.Type == 0 {
+		switch {
+		case s.Type == 0:
 			list.WriteString("Daily Deviations")
-		} else if s.Type == 'g' && len(devs) != 0 {
+		case s.Type == 'g' && len(devs) != 0:
 			list.WriteString(devs[0].Author.Username)
-		} else {
+		default:
 			list.WriteString("SkunkyArt")
 		}
 		list.WriteString(`</title>`)
@@ -181,19 +188,26 @@ func (s skunkyart) DeviationList(devs []devianter.Deviation, allowAtom bool, con
 }
 
 /* DESCRIPTION/COMMENT PARSER */
+
+// text is one styled run within a description: the rendered HTML, the raw source
+// it came from, and the offsets it spans in the original block.
 type text struct {
-	TXT     string
-	TXT_RAW string
-	From    int
-	To      int
+	Txt    string
+	TxtRaw string
+	From   int
+	To     int
 }
 
-// TODO: rewrite this whole mess
+// ParseDescription renders a DeviantArt description into HTML, handling both the
+// Draft.js-style JSON payload and the plain HTML markup DeviantArt returns, and
+// rewriting embedded links and artwork references to point at this instance.
+//
+// TODO: rewrite this whole mess.
 func ParseDescription(dscr devianter.Text) string {
 	var parsedDescription strings.Builder
 	TagBuilder := func(content string, tags ...string) string {
 		l := len(tags)
-		for x := 0; x < l; x++ {
+		for x := range l {
 			var htm strings.Builder
 			htm.WriteString("<")
 			htm.WriteString(tags[x])
@@ -208,7 +222,7 @@ func ParseDescription(dscr devianter.Text) string {
 		}
 		return content
 	}
-	DeleteTrackingFromUrl := func(url string) string {
+	DeleteTrackingFromURL := func(url string) string {
 		if len(url) > 42 && url[:42] == "https://www.deviantart.com/users/outgoing?" {
 			url = url[42:]
 		}
@@ -220,30 +234,34 @@ func ParseDescription(dscr devianter.Text) string {
 		description[dl-1] == '}' {
 		var descr struct {
 			Blocks []struct {
-				Text, Type        string
+				Text              string `json:"text"`
+				Type              string `json:"type"`
 				InlineStyleRanges []struct {
-					Offset, Length int
-					Style          string
-				}
+					Offset int    `json:"offset"`
+					Length int    `json:"length"`
+					Style  string `json:"style"`
+				} `json:"inlineStyleRanges"`
 				EntityRanges []struct {
-					Offset, Length int
-					Key            int
-				}
+					Offset int `json:"offset"`
+					Length int `json:"length"`
+					Key    int `json:"key"`
+				} `json:"entityRanges"`
 				Data struct {
-					TextAlignment string
-				}
-			}
+					TextAlignment string `json:"textAlignment"`
+				} `json:"data"`
+			} `json:"blocks"`
 			EntityMap map[string]struct {
-				Type string
+				Type string `json:"type"`
 				Data struct {
-					Url    string
+					URL    string `json:"url"`
 					Config struct {
-						Aligment string
-						Width    int
-					}
-					Data devianter.Deviation
-				}
-			}
+						// "aligment" is DeviantArt's own spelling; do not correct it.
+						Aligment string `json:"aligment"`
+						Width    int    `json:"width"`
+					} `json:"config"`
+					Data devianter.Deviation `json:"data"`
+				} `json:"data"`
+			} `json:"entityMap"`
 		}
 		e := json.Unmarshal([]byte(description), &descr)
 		try(e)
@@ -252,8 +270,8 @@ func ParseDescription(dscr devianter.Text) string {
 		urls := make(map[int]string)
 		for n, x := range descr.EntityMap {
 			num, _ := strconv.Atoi(n)
-			if x.Data.Url != "" {
-				urls[num] = DeleteTrackingFromUrl(x.Data.Url)
+			if x.Data.URL != "" {
+				urls[num] = DeleteTrackingFromURL(x.Data.URL)
 			}
 			entities[num] = x.Data.Data
 		}
@@ -278,10 +296,10 @@ func ParseDescription(dscr devianter.Text) string {
 					FT := Styles.From * Styles.To
 					tags[FT] = append(tags[FT], rngs.Style)
 				}
-				for n := 0; n < len(Styles); n++ {
+				for n := range Styles {
 					Styles := &Styles[n]
-					Styles.TXT_RAW = x.Text[Styles.From:Styles.To]
-					Styles.TXT = TagBuilder(Styles.TXT_RAW, tags[Styles.From*Styles.To]...)
+					Styles.TxtRaw = x.Text[Styles.From:Styles.To]
+					Styles.Txt = TagBuilder(Styles.TxtRaw, tags[Styles.From*Styles.To]...)
 				}
 			}
 
@@ -290,7 +308,7 @@ func ParseDescription(dscr devianter.Text) string {
 				if len(x.EntityRanges) != 0 {
 					d := entities[x.EntityRanges[0].Key]
 					parsedDescription.WriteString(`<a href="`)
-					parsedDescription.WriteString(ConvertDeviantArtUrlToSkunkyArt(d.Url))
+					parsedDescription.WriteString(ConvertDeviantArtURLToSkunkyArt(d.Url))
 					parsedDescription.WriteString(`"><img width="50%" src="`)
 					parsedDescription.WriteString(ParseMedia(d.Media))
 					parsedDescription.WriteString(`" title="`)
@@ -314,10 +332,10 @@ func ParseDescription(dscr devianter.Text) string {
 							parsedDescription.WriteString(`<a target="_blank" href="`)
 							parsedDescription.WriteString(urls[ra.Key])
 							parsedDescription.WriteString(`">`)
-							parsedDescription.WriteString(r.TXT)
+							parsedDescription.WriteString(r.Txt)
 							parsedDescription.WriteString(`</a>`)
 						} else if l > n+1 {
-							parsedDescription.WriteString(r.TXT)
+							parsedDescription.WriteString(r.Txt)
 						}
 						parsedDescription.WriteString(TagBuilder(tag, x.Text[r.To:]))
 					}
@@ -332,13 +350,15 @@ func ParseDescription(dscr devianter.Text) string {
 			switch tt.Next() {
 			case html.ErrorToken:
 				return parsedDescription.String()
+			case html.CommentToken, html.DoctypeToken:
+				// No renderable content; skip.
 			case html.StartTagToken, html.EndTagToken, html.SelfClosingTagToken:
 				token := tt.Token()
 				switch token.Data {
 				case "a":
 					for _, a := range token.Attr {
 						if a.Key == "href" {
-							url := DeleteTrackingFromUrl(a.Val)
+							url := DeleteTrackingFromURL(a.Val)
 							parsedDescription.WriteString(`<a target="_blank" href="`)
 							parsedDescription.WriteString(url)
 							parsedDescription.WriteString(`">`)
@@ -352,7 +372,7 @@ func ParseDescription(dscr devianter.Text) string {
 						switch a.Key {
 						case "src":
 							if len(a.Val) > 9 && a.Val[8:9] == "e" {
-								uri = UrlBuilder("media", "emojitar", a.Val[37:len(a.Val)-4], "?type=e")
+								uri = URLBuilder("media", "emojitar", a.Val[37:len(a.Val)-4], "?type=e")
 							}
 						case "title":
 							title = a.Val

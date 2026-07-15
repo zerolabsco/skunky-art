@@ -10,6 +10,8 @@ import (
 	"golang.org/x/net/html"
 )
 
+// GRUser renders a group or user page: the about tab, the gallery, or favourites,
+// selected by the request's type argument.
 func (s skunkyart) GRUser() {
 	if len(s.Query) < 1 {
 		s.ReturnHTTPError(400)
@@ -70,7 +72,7 @@ func (s skunkyart) GRUser() {
 
 			case "cover_deviation":
 				group.About.BGMeta = x.ModuleData.CoverDeviation.Deviation
-				group.About.BGMeta.Url = ConvertDeviantArtUrlToSkunkyArt(group.About.BGMeta.Url)
+				group.About.BGMeta.Url = ConvertDeviantArtURLToSkunkyArt(group.About.BGMeta.Url)
 				group.About.BG = ParseMedia(group.About.BGMeta.Media)
 			case "group_admins":
 				var htm strings.Builder
@@ -120,9 +122,9 @@ func (s skunkyart) GRUser() {
 						if x.FolderId != -1 && x.Size != 0 {
 							folders.WriteString(`<div class="block folder-item">`)
 
-							if !(x.Thumb.NSFW && !CFG.Nsfw) {
+							if !x.Thumb.NSFW || CFG.Nsfw {
 								folders.WriteString(`<a href="`)
-								folders.WriteString(ConvertDeviantArtUrlToSkunkyArt(x.Thumb.Url))
+								folders.WriteString(ConvertDeviantArtURLToSkunkyArt(x.Thumb.Url))
 								folders.WriteString(`"><img loading="lazy" src="`)
 								folders.WriteString(ParseMedia(x.Thumb.Media))
 								folders.WriteString(`" title="`)
@@ -138,7 +140,7 @@ func (s skunkyart) GRUser() {
 							folders.WriteString("&q=")
 							folders.WriteString(s.Query)
 							folders.WriteString("&type=")
-							folders.WriteString(string(s.Type))
+							folders.WriteRune(s.Type)
 							folders.WriteString(`">`)
 							folders.WriteString(x.Name)
 							folders.WriteString(`</a>`)
@@ -167,10 +169,11 @@ func (s skunkyart) GRUser() {
 	}
 }
 
-// posts
+// Deviation renders a single artwork page, with its description, tags, comments
+// and related work. It responds 403 for NSFW posts on instances that disallow them.
 func (s skunkyart) Deviation(author, postname string) {
-	id_search := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
-	if len(id_search) < 1 {
+	idSearch := regexp.MustCompile("[0-9]+").FindAllString(postname, -1)
+	if len(idSearch) < 1 {
 		s.ReturnHTTPError(400)
 		return
 	}
@@ -178,7 +181,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	var err devianter.Error
 	post := &s.Templates.Deviation
 
-	id := id_search[len(id_search)-1]
+	id := idSearch[len(idSearch)-1]
 	post.Post, err = devianter.GetDeviation(id, author)
 	if err.RAW != nil {
 		s.Error(err)
@@ -188,7 +191,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	if post.Post.Deviation.NSFW && !CFG.Nsfw {
 		s.Writer.WriteHeader(403)
 		wr(s.Writer, `<html><link rel="stylesheet" href="`+
-			UrlBuilder("stylesheet")+
+			URLBuilder("stylesheet")+
 			`" /><h1>NSFW content are disabled on this instance.</h1></html>`)
 		return
 	}
@@ -213,7 +216,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	for _, x := range post.Post.Deviation.Extended.Tags {
 		var tag strings.Builder
 		tag.WriteString(` <a href="`)
-		tag.WriteString(UrlBuilder("search", "?q=", x.Name, "&type=tag"))
+		tag.WriteString(URLBuilder("search", "?q=", x.Name, "&type=tag"))
 		tag.WriteString(`">#`)
 		tag.WriteString(x.Name)
 		tag.WriteString("</a>")
@@ -228,6 +231,7 @@ func (s skunkyart) Deviation(author, postname string) {
 	s.ExecuteTemplate("deviantion.htm", "html", &s)
 }
 
+// DD renders the Daily Deviations page, including each themed strip.
 func (s skunkyart) DD() {
 	dd, err := devianter.GetDailyDeviations(s.Page)
 	if err.RAW != nil {
@@ -256,6 +260,8 @@ func (s skunkyart) DD() {
 	}
 }
 
+// Search renders search results for the request's query. Group search is scraped
+// rather than fetched from the API, which DeviantArt does not expose to guests.
 func (s skunkyart) Search() {
 	if s.Query == "" {
 		s.ReturnHTTPError(400)
@@ -305,7 +311,7 @@ func (s skunkyart) Search() {
 
 		if l := len(usernames); l != 0 {
 			ss.List += `<div class="content plates">`
-			for x := 0; x < len(usernames); x++ {
+			for x := range len(usernames) {
 				ss.List += BuildUserPlate(usernames[x])
 			}
 			ss.List += `</div>`
@@ -334,8 +340,10 @@ func (s skunkyart) Search() {
 	s.ExecuteTemplate("search.htm", "html", &s)
 }
 
+// Emojitar proxies a user's avatar or emoji image, selected by the request's
+// type argument.
 func (s skunkyart) Emojitar(name string) {
-	if name == "" || !(s.Type == 'a' || s.Type == 'e') {
+	if name == "" || (s.Type != 'a' && s.Type != 'e') {
 		s.ReturnHTTPError(400)
 		return
 	}

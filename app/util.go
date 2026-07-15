@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,7 +19,12 @@ import (
 )
 
 /* INTERNAL */
-var wr = io.WriteString
+
+// wr writes s to w. A write error here means the client went away mid-response,
+// which a handler cannot act on, so it is deliberately discarded.
+func wr(w io.Writer, s string) {
+	_, _ = io.WriteString(w, s)
+}
 
 func exit(msg string, code int) {
 	println(msg)
@@ -34,15 +41,22 @@ func tryWithExitStatus(err error, code int) {
 	}
 }
 
+// restore swallows a panic in the calling goroutine so that one bad parse cannot
+// take the whole process down. The panic is logged rather than dropped silently.
 func restore() {
 	if r := recover(); r != nil {
-		recover()
+		println("recovered from panic:", fmt.Sprint(r))
 	}
 }
 
 var instances []byte
+
+// About is the instance list and settings shown in the frontend, refreshed by
+// RefreshInstances.
 var About instanceAbout
 
+// RefreshInstances re-fetches the published instance list every hour, forever.
+// Run it in its own goroutine; fetch failures are logged and retried next cycle.
 func RefreshInstances() {
 	for {
 		func() {
@@ -54,11 +68,11 @@ func RefreshInstances() {
 	}
 }
 
-// some crap for frontend
+// instanceAbout is the instance metadata exposed to the frontend and the API.
 type instanceAbout struct {
-	Proxy     bool
-	Nsfw      bool
-	Instances []settings
+	Proxy     bool       `json:"proxy"`
+	Nsfw      bool       `json:"nsfw"`
+	Instances []settings `json:"instances"`
 }
 
 type skunkyart struct {
@@ -118,6 +132,8 @@ type skunkyart struct {
 	}
 }
 
+// ExecuteTemplate renders the named template from dir with data, responding 500
+// if the template cannot be parsed.
 func (s skunkyart) ExecuteTemplate(file, dir string, data any) {
 	var buf strings.Builder
 	tmp := template.New(file)
@@ -131,26 +147,30 @@ func (s skunkyart) ExecuteTemplate(file, dir string, data any) {
 	wr(s.Writer, buf.String())
 }
 
-func UrlBuilder(strs ...string) string {
+// URLBuilder joins strs into an absolute instance URL, prefixing the current
+// Host and configured URI and inserting slashes between path segments but not
+// before query separators.
+func URLBuilder(strs ...string) string {
 	var str strings.Builder
 	l := len(strs)
 	str.WriteString(Host)
 	str.WriteString(CFG.URI)
 	for n, x := range strs {
 		str.WriteString(x)
-		if n := n + 1; n < l && len(strs[n]) != 0 && !(strs[n][0] == '?' || strs[n][0] == '&') && !(x[0] == '?' || x[0] == '&') {
+		if n := n + 1; n < l && len(strs[n]) != 0 && (strs[n][0] != '?' && strs[n][0] != '&') && (x[0] != '?' && x[0] != '&') {
 			str.WriteString("/")
 		}
 	}
 	return str.String()
 }
 
+// Error responds 502 with the error DeviantArt reported upstream.
 func (s skunkyart) Error(dAerr devianter.Error) {
 	s.Writer.WriteHeader(502)
 
 	var msg strings.Builder
 	msg.WriteString(`<html><link rel="stylesheet" href="`)
-	msg.WriteString(UrlBuilder("stylesheet"))
+	msg.WriteString(URLBuilder("stylesheet"))
 	msg.WriteString(`" /><h3>DeviantArt error — '`)
 	msg.WriteString(dAerr.Error)
 	msg.WriteString("'</h3></html>")
@@ -158,12 +178,18 @@ func (s skunkyart) Error(dAerr devianter.Error) {
 	wr(s.Writer, msg.String())
 }
 
+// ReturnHTTPError responds with a styled error page for the given status.
 func (s skunkyart) ReturnHTTPError(status int) {
+	// A failed upstream fetch reports status 0, and WriteHeader panics on any
+	// code outside 1xx-5xx. Treat anything unusable as a gateway failure.
+	if status < 100 || status > 599 {
+		status = http.StatusBadGateway
+	}
 	s.Writer.WriteHeader(status)
 
 	var msg strings.Builder
 	msg.WriteString(`<html><link rel="stylesheet" href="`)
-	msg.WriteString(UrlBuilder("stylesheet"))
+	msg.WriteString(URLBuilder("stylesheet"))
 	msg.WriteString(`" /><h1>`)
 	msg.WriteString(strconv.Itoa(status))
 	msg.WriteString(" - ")
@@ -173,6 +199,7 @@ func (s skunkyart) ReturnHTTPError(status int) {
 	wr(s.Writer, msg.String())
 }
 
+// SetFilename sets the Content-Disposition filename for the response.
 func (s skunkyart) SetFilename(name string) {
 	var filename strings.Builder
 	filename.WriteString(`filename="`)
@@ -181,29 +208,50 @@ func (s skunkyart) SetFilename(name string) {
 	s.Writer.Header().Add("Content-Disposition", filename.String())
 }
 
+// Downloaded is the result of a Download. A Status of 0 means the request never
+// completed, in which case Body and Headers are empty.
 type Downloaded struct {
 	Headers http.Header
 	Status  int
 	Body    []byte
 }
 
+// Download fetches urlString with the configured User-Agent, routing through
+// download-proxy when one is set. Every failure path returns the zero
+// Downloaded, so callers must check Status before trusting Body or Headers.
 func Download(urlString string) (d Downloaded) {
 	cli := &http.Client{}
 	if CFG.DownloadProxy != "" {
-		u, e := url.Parse(CFG.DownloadProxy)
-		try(e)
-		cli.Transport = &http.Transport{Proxy: http.ProxyURL(u)}
+		u, err := url.Parse(CFG.DownloadProxy)
+		if err != nil {
+			try(err)
+			return
+		}
+		cli.Transport = ProxiedTransport(u)
 	}
 
-	req, e := http.NewRequest("GET", urlString, nil)
-	try(e)
+	ctx, cancel := context.WithTimeout(context.Background(), downloadTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlString, nil)
+	if err != nil {
+		try(err)
+		return
+	}
 	req.Header.Set("User-Agent", CFG.UserAgent)
 
-	resp, e := cli.Do(req)
-	try(e)
-	defer resp.Body.Close()
-	b, e := io.ReadAll(resp.Body)
-	try(e)
+	resp, err := cli.Do(req)
+	if err != nil {
+		try(err)
+		return
+	}
+	defer func() { try(resp.Body.Close()) }()
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		try(err)
+		return
+	}
 
 	d.Body = b
 	d.Status = resp.StatusCode
@@ -212,45 +260,56 @@ func Download(urlString string) (d Downloaded) {
 }
 
 /* PARSING HELPERS */
+
+// ParseMedia returns the URL to serve for media: a link back through this
+// instance's media proxy when proxying is on, or DeviantArt's own URL when it is
+// off. An optional thumb width selects a thumbnail instead of the full image.
 func ParseMedia(media devianter.Media, thumb ...int) string {
-	mediaUrl, filename := devianter.UrlFromMedia(media, thumb...)
-	if len(mediaUrl) != 0 && CFG.Proxy {
-		mediaUrl = mediaUrl[21:]
-		dot := strings.Index(mediaUrl, ".")
+	mediaURL, filename := devianter.UrlFromMedia(media, thumb...)
+	if len(mediaURL) != 0 && CFG.Proxy {
+		mediaURL = mediaURL[21:]
+		dot := strings.Index(mediaURL, ".")
 		if filename == "" {
 			filename = "image.gif"
 		}
-		return UrlBuilder("media", "file", mediaUrl[:dot], mediaUrl[dot+11:], "&filename=", filename)
+		return URLBuilder("media", "file", mediaURL[:dot], mediaURL[dot+11:], "&filename=", filename)
 	} else if !CFG.Proxy {
-		return mediaUrl
+		return mediaURL
 	}
 	return ""
 }
 
-func ConvertDeviantArtUrlToSkunkyArt(url string) (output string) {
+// ConvertDeviantArtURLToSkunkyArt rewrites a deviantart.com post link into the
+// equivalent link on this instance. It returns an empty string for URLs it does
+// not handle, including sta.sh links.
+func ConvertDeviantArtURLToSkunkyArt(url string) (output string) {
 	if len(url) > 32 && url[27:32] != "stash" {
 		url = url[27:]
 		firstshash := strings.Index(url, "/")
 		lastshash := firstshash + strings.Index(url[firstshash+1:], "/")
 		if lastshash != -1 {
-			output = UrlBuilder("post", url[:firstshash], url[lastshash+2:])
+			output = URLBuilder("post", url[:firstshash], url[lastshash+2:])
 		}
 	}
 	return
 }
 
+// BuildUserPlate renders the small avatar-and-username block linking to a user's
+// about page.
 func BuildUserPlate(name string) string {
 	var htm strings.Builder
 	htm.WriteString(`<div class="user-plate"><img src="`)
-	htm.WriteString(UrlBuilder("media", "emojitar", name, "?type=a"))
+	htm.WriteString(URLBuilder("media", "emojitar", name, "?type=a"))
 	htm.WriteString(`"><a href="`)
-	htm.WriteString(UrlBuilder("group_user", "?type=about&q=", name))
+	htm.WriteString(URLBuilder("group_user", "?type=about&q=", name))
 	htm.WriteString(`">`)
 	htm.WriteString(name)
 	htm.WriteString(`</a></div>`)
 	return htm.String()
 }
 
+// GetValueOfTag returns the text of the tokenizer's next token, or an empty
+// string if that token is not text.
 func GetValueOfTag(t *html.Tokenizer) string {
 	for tt := t.Next(); ; {
 		if tt == html.TextToken {
@@ -261,13 +320,17 @@ func GetValueOfTag(t *html.Tokenizer) string {
 	}
 }
 
-// page navigation
+// DeviationList describes the pagination state of a list of artworks: how many
+// pages exist, and whether another page follows the current one.
 type DeviationList struct {
 	Pages int
 	More  bool
 }
 
-// FIXME: on some artworks the first page can make the navigation panel disappear entirely.
+// NavBase renders the page navigation bar for a list.
+//
+// FIXME: on some artworks the first page can make the navigation panel disappear
+// entirely.
 func (s skunkyart) NavBase(c DeviationList) string {
 	var list strings.Builder
 

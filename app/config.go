@@ -11,36 +11,41 @@ import (
 	"github.com/zerolabsco/devianter"
 )
 
+// Release carries the build's version and description, set at link time and
+// shown by --help and the API.
 var Release struct {
 	Version     string
 	Description string
 }
 
-type cache_config struct {
-	Enabled        bool
-	MemCache       bool `json:"memcache"`
-	Path           string
-	MaxSize        int64 `json:"max-size"`
-	Lifetime       string
-	UpdateInterval int64 `json:"update-interval"`
+type cacheConfig struct {
+	Enabled        bool   `json:"enabled"`
+	MemCache       bool   `json:"memcache"`
+	Path           string `json:"path"`
+	MaxSize        int64  `json:"max-size"`
+	Lifetime       string `json:"lifetime"`
+	UpdateInterval int64  `json:"update-interval"`
 }
 
 type config struct {
 	cfg           string
-	Listen        string
-	URI           string `json:"uri"`
-	Cache         cache_config
-	Proxy, Nsfw   bool
-	UserAgent     string `json:"user-agent"`
-	DownloadProxy string `json:"download-proxy"`
-	StaticPath    string `json:"static-path"`
+	Listen        string      `json:"listen"`
+	URI           string      `json:"uri"`
+	Cache         cacheConfig `json:"cache"`
+	Proxy         bool        `json:"proxy"`
+	Nsfw          bool        `json:"nsfw"`
+	UserAgent     string      `json:"user-agent"`
+	DownloadProxy string      `json:"download-proxy"`
+	StaticPath    string      `json:"static-path"`
 }
 
+// CFG is the running instance's configuration, holding the defaults below until
+// ExecuteConfig overwrites them from the config file.
 var CFG = config{
 	cfg:    "config.json",
 	Listen: "127.0.0.1:3003",
 	URI:    "/",
-	Cache: cache_config{
+	Cache: cacheConfig{
 		Enabled:        false,
 		Path:           "cache",
 		UpdateInterval: 1,
@@ -53,6 +58,9 @@ var CFG = config{
 
 var lifetimeParsed int64
 
+// ExecuteConfig loads the config file into CFG, validates it, and starts the
+// cache rotation loop if caching is on. It exits the process on a config that
+// cannot be read or that asks for caching without proxying.
 func ExecuteConfig() {
 	if CFG.cfg != "" {
 		f, err := os.ReadFile(CFG.cfg)

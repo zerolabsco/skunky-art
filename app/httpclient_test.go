@@ -21,8 +21,8 @@ func (s *stubTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return httptest.NewRecorder().Result(), nil
 }
 
-func newTestThrottle(base http.RoundTripper, gap time.Duration, max int) *daThrottle {
-	return &daThrottle{base: base, sem: make(chan struct{}, max)}
+func newTestThrottle(base http.RoundTripper, gap time.Duration, maxConcurrent int) *daThrottle {
+	return &daThrottle{base: base, sem: make(chan struct{}, maxConcurrent)}
 }
 
 // DeviantArt requests must be spaced by at least daMinInterval.
@@ -32,7 +32,7 @@ func TestThrottleRateLimitsDeviantArt(t *testing.T) {
 
 	start := time.Now()
 	const n = 3
-	for i := 0; i < n; i++ {
+	for range n {
 		req, _ := http.NewRequest("GET", "https://www.deviantart.com/_puppy/x", nil)
 		if _, err := tr.RoundTrip(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -55,7 +55,7 @@ func TestThrottleSkipsOtherHosts(t *testing.T) {
 	tr := newTestThrottle(stub, daMinInterval, daMaxConcurrent)
 
 	start := time.Now()
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		req, _ := http.NewRequest("GET", "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/x.jpg", nil)
 		if _, err := tr.RoundTrip(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -96,13 +96,11 @@ func TestThrottleCapsConcurrency(t *testing.T) {
 	tr := newTestThrottle(counting, daMinInterval, daMaxConcurrent)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 6; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 6 {
+		wg.Go(func() {
 			req, _ := http.NewRequest("GET", "https://www.deviantart.com/_puppy/x", nil)
-			tr.RoundTrip(req)
-		}()
+			_, _ = tr.RoundTrip(req)
+		})
 	}
 	wg.Wait()
 
