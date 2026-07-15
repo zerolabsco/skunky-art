@@ -1,4 +1,4 @@
-[English version 🇬🇧](/skunky/SkunkyArt/src/branch/master/SETUP.md)
+[English version 🇬🇧](SETUP.md)
 
 # Единицы измерения
 Размер файла в кеше измеряется в мегабайтах.<br>

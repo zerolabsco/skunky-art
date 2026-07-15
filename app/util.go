@@ -47,7 +47,7 @@ func RefreshInstances() {
 	for {
 		func() {
 			defer restore()
-			instances = Download("https://git.macaw.me/skunky/SkunkyArt/raw/branch/master/instances.json").Body
+			instances = Download("https://raw.githubusercontent.com/zerolabsco/skunky-art/main/instances.json").Body
 			try(json.Unmarshal(instances, &About))
 		}()
 		time.Sleep(1 * time.Hour)
