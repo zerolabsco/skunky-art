@@ -20,6 +20,17 @@ can also add the `-ldflags "-w -s"` argument (GCCGO has a different name for it
 
 `go build -tags embed -ldflags "-w -s"`
 
+## Docker
+Prebuilt multi-arch images (`linux/amd64`, `linux/arm64`) are published to GHCR
+on every release tag:
+
+`docker pull ghcr.io/zerolabsco/skunky-art:latest`
+
+Each release is tagged `1.3.3`, `1.3`, `1` and `latest`; pin an exact version if
+you want reproducible upgrades. `compose.example.yaml` uses this image by
+default and keeps a commented-out `build: .` for building from a checkout.
+`compose.vpn_example.yml` does the same, plus an optional VPN egress sidecar.
+
 ## Setup
 The sample config is in the `config.example.json` file. For custom config, use
 the `--config` option.
