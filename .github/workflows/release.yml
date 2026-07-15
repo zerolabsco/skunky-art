@@ -20,7 +20,7 @@ jobs:
       attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # The Dockerfile cross-compiles with Go's GOOS/GOARCH from $BUILDPLATFORM,
       # so no QEMU emulation is needed for the arm64 image.
