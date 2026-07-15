@@ -1,0 +1,48 @@
+version: "2"
+
+linters:
+  # standard = govet, errcheck, staticcheck, ineffassign, unused
+  default: standard
+  enable:
+    # Correctness / security
+    - bodyclose
+    - noctx
+    - gosec
+    - forcetypeassert
+    - canonicalheader
+    - musttag
+    - predeclared
+    - exhaustive
+    # Modernization
+    - modernize
+    - gocritic
+    - mirror
+    - perfsprint
+    - intrange
+    # Docs and style
+    - revive
+    - godot
+
+  settings:
+    revive:
+      rules:
+        # Requires a doc comment on every exported symbol, starting with the
+        # symbol's own name. checkPrivateReceivers extends this to exported
+        # methods on unexported types, which is most of the app package.
+        - name: exported
+          arguments:
+            - checkPrivateReceivers
+    staticcheck:
+      # "all" turns on the doc-comment checks (ST1000/ST1020/ST1021/ST1022) and
+      # the naming checks (ST1003), which are off by default.
+      checks:
+        - all
+
+  exclusions:
+    rules:
+      # Test helpers make throwaway requests to a local httptest server; a
+      # context and a closed body add noise without catching anything.
+      - path: _test\.go$
+        linters:
+          - bodyclose
+          - noctx
