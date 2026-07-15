@@ -1,0 +1,95 @@
+# SkunkyArt + optional VPN egress, in a single stack.
+#
+# Why: DeviantArt's API (AWS CloudFront + WAF) blocks some egress IPs on the
+# /_puppy path, which makes every DA-backed page fail with
+# `invalid character '<' looking for beginning of value` (Go trying to
+# json.Unmarshal a CloudFront HTML 403 page). Routing SkunkyArt's outbound
+# through a non-blocked VPN exit fixes it without any code change: devianter's
+# HTTP client honors HTTPS_PROXY/HTTP_PROXY.
+#
+# The VPN sidecar (gluetun) is OPTIONAL — it only starts under the "vpn" profile.
+# With the profile off, SkunkyArt runs exactly as the stock compose.yaml (direct).
+#
+# The VPN provider is YOUR choice: gluetun supports AirVPN, Mullvad, ProtonVPN,
+# PIA, and many others. Set VPN_SERVICE_PROVIDER and supply that provider's
+# required settings. Provider list + required variables:
+#   https://github.com/qdm12/gluetun-wiki
+#
+# ---------------------------------------------------------------------------
+# Setup:
+#   1. Copy this file to compose.yaml (or run with `-f compose.vpn_example.yml`).
+#   2. Create a .env next to it (and `echo ".env" >> .gitignore`):
+#
+#        # toggle VPN: uncomment both to route SkunkyArt through the VPN
+#        #COMPOSE_PROFILES=vpn
+#        #SKUNKY_PROXY=http://gluetun:8888
+#
+#        # pick your provider (see the gluetun wiki for the exact name/vars)
+#        VPN_SERVICE_PROVIDER=airvpn
+#        VPN_TYPE=wireguard
+#
+#        # WireGuard credentials (from your provider's config generator)
+#        VPN_PRIVATE_KEY=<[Interface] PrivateKey>
+#        VPN_PRESHARED_KEY=<[Peer] PresharedKey>   # optional; some providers omit it
+#        VPN_ADDRESSES=<[Interface] Address, e.g. 10.128.x.x/32>
+#        VPN_COUNTRIES=Netherlands
+#        TZ=America/Chicago
+#
+#   3. VPN on:  uncomment the two toggle lines, then `docker compose up -d`.
+#      VPN off: leave them commented, then `docker compose up -d`.
+#
+# Verify an exit is not blocked BEFORE trusting it:
+#   curl -x http://127.0.0.1:8888 -s -o /dev/null -w "%{http_code}\n" \
+#     "https://www.deviantart.com/_puppy/dabrowse/networkbar/rfy/deviations?page=0"
+#   400 (JSON "csrf: missing") = clean exit.  403 (text/html) = blocked, rotate servers.
+# ---------------------------------------------------------------------------
+
+services:
+  skunkyart:
+    container_name: skunkyart
+    restart: unless-stopped
+    build: .
+    ports:
+      - "127.0.0.1:3003:3003"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./config.json:/config.json:ro
+      - ./cache:/cache            # ensure this dir is owned 10000:10000
+    environment:
+      # Empty by default = direct. Set SKUNKY_PROXY in .env to route via the VPN.
+      - HTTPS_PROXY=${SKUNKY_PROXY:-}
+      - HTTP_PROXY=${SKUNKY_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1
+    depends_on:
+      gluetun:
+        condition: service_healthy
+        required: false           # optional dep: skunky still starts if gluetun is off
+                                  # (needs Docker Compose v2.20+; drop this block on older)
+
+  # --- optional VPN egress: only starts with the "vpn" profile ---
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun-skunky
+    profiles: ["vpn"]
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "127.0.0.1:8888:8888"     # host-side, only for testing the proxy
+    environment:
+      # Provider + tunnel type — your choice (see gluetun wiki).
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:-}
+      - VPN_TYPE=${VPN_TYPE:-wireguard}
+      # WireGuard credentials (leave PRESHARED empty if your provider omits it).
+      - WIREGUARD_PRIVATE_KEY=${VPN_PRIVATE_KEY:-}
+      - WIREGUARD_PRESHARED_KEY=${VPN_PRESHARED_KEY:-}
+      - WIREGUARD_ADDRESSES=${VPN_ADDRESSES:-}
+      - SERVER_COUNTRIES=${VPN_COUNTRIES:-}
+      - HTTPPROXY=on              # built-in HTTP proxy on :8888
+      - TZ=${TZ:-Etc/UTC}
+      # If skunky can't reach the proxy while gluetun is healthy, uncomment to let
+      # gluetun's firewall accept the docker network:
+      # - FIREWALL_OUTBOUND_SUBNETS=172.16.0.0/12
+    restart: unless-stopped

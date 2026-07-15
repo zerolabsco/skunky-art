@@ -3,9 +3,10 @@ package app
 import (
 	"encoding/json"
 	"math/rand"
+	"strconv"
 	"strings"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 )
 
 type API struct {
@@ -58,25 +59,32 @@ func (a API) sendMedia(d *devianter.Deviation) {
 
 // TODO: сделать фильтры
 func (a API) Random() {
-	for attempt := 1; ; {
-		if attempt > 3 {
-			a.Error("Sorry, butt NSFW on this are disabled, and the instance failed to find a random art without NSFW", 500)
-		}
+	// Bounded retries: the loop used to be unbounded, and the DeviantArt-error
+	// path never incremented attempt, so a single request could spin forever
+	// hammering the API (and get this instance's egress IP banned).
+	const maxAttempts = 3
 
-		s, err, daErr := devianter.PerformSearch(string(rand.Intn(999)), rand.Intn(30), 'a')
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// strconv.Itoa, not string(): string(65) is "A", not "65".
+		s, daErr, err := devianter.PerformSearch(strconv.Itoa(rand.Intn(999)), rand.Intn(30), 'a')
 		try(err)
 		if daErr.RAW != nil {
 			continue
 		}
 
-		deviation := &s.Results[rand.Intn(len(s.Results))]
+		// rand.Intn panics on 0, so an empty result set must be skipped.
+		if len(s.Results) == 0 {
+			continue
+		}
 
+		deviation := &s.Results[rand.Intn(len(s.Results))]
 		if deviation.NSFW && !CFG.Nsfw {
-			attempt++
 			continue
 		}
 
 		a.sendMedia(deviation)
 		return
 	}
+
+	a.Error("Sorry, butt NSFW on this are disabled, and the instance failed to find a random art without NSFW", 500)
 }

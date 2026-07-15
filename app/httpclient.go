@@ -1,0 +1,68 @@
+package app
+
+import (
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+)
+
+// DeviantArt fronts its API with AWS CloudFront + WAF, which bans egress IPs that
+// hit it too hard. Under a bot flood, unbounded concurrent handlers each fetch
+// ~150-200 KB of DA JSON, which both hammers that IP (risking a ban) and can OOM
+// the process. devianter makes its requests with a bare &http.Client{}, so they go
+// through http.DefaultTransport — we wrap it here to bound the rate and concurrency
+// of calls to deviantart.com and to add timeouts. Requests to other hosts (e.g.
+// wixmp image CDN) are passed straight through, so media stays fast.
+//
+// http.ProxyFromEnvironment is preserved, so HTTPS_PROXY (VPN egress) still applies.
+
+// Tunables (kept in source; safe defaults). Lower is gentler on the DA IP.
+var (
+	daMinInterval   = 400 * time.Millisecond // minimum gap between DA request starts
+	daMaxConcurrent = 2                      // max simultaneous in-flight DA requests
+)
+
+type daThrottle struct {
+	base http.RoundTripper
+	sem  chan struct{}
+	mu   sync.Mutex
+	last time.Time
+}
+
+func (t *daThrottle) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Only throttle DeviantArt's WAF-protected API host; let everything else fly.
+	if !strings.Contains(req.URL.Hostname(), "deviantart.com") {
+		return t.base.RoundTrip(req)
+	}
+
+	// Concurrency cap: block until a slot frees up (backpressure under floods).
+	t.sem <- struct{}{}
+	defer func() { <-t.sem }()
+
+	// Rate cap: enforce a minimum interval between request starts.
+	t.mu.Lock()
+	if wait := daMinInterval - time.Since(t.last); wait > 0 {
+		time.Sleep(wait)
+	}
+	t.last = time.Now()
+	t.mu.Unlock()
+
+	return t.base.RoundTrip(req)
+}
+
+// InstallDAThrottle wraps http.DefaultTransport with the rate/concurrency limits and
+// timeouts above. Call once at startup, before any DeviantArt request is made.
+func InstallDAThrottle() {
+	// Clone the default transport so we keep its Proxy (ProxyFromEnvironment) and
+	// connection-pool defaults, then tighten timeouts to bound hung connections.
+	base := http.DefaultTransport.(*http.Transport).Clone()
+	base.TLSHandshakeTimeout = 10 * time.Second
+	base.ResponseHeaderTimeout = 20 * time.Second
+	base.ExpectContinueTimeout = 2 * time.Second
+
+	http.DefaultTransport = &daThrottle{
+		base: base,
+		sem:  make(chan struct{}, daMaxConcurrent),
+	}
+}

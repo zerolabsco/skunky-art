@@ -5,7 +5,7 @@ import (
 	"skunkyart/static"
 	"time"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 )
 
 func main() {
@@ -16,6 +16,10 @@ func main() {
 	app.ExecuteCommandLineArguments()
 	app.ExecuteConfig()
 	static.CopyTemplatesToMemory()
+
+	// Rate/concurrency-limit + time-out outbound DeviantArt requests so bot floods
+	// can't exhaust the process or get our egress IP banned by CloudFront/WAF.
+	app.InstallDAThrottle()
 
 	go func() {
 		for {

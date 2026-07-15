@@ -12,7 +12,7 @@ import (
 	"text/template"
 	"time"
 
-	"git.macaw.me/skunky/devianter"
+	"github.com/zerolabsco/devianter"
 	"golang.org/x/net/html"
 )
 

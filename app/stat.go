@@ -1,5 +1,5 @@
-//go:build !freebsd
-// +build !freebsd
+//go:build !freebsd && !darwin
+// +build !freebsd,!darwin
 
 package app
 
