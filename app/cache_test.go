@@ -2,6 +2,8 @@ package app
 
 import (
 	"bytes"
+	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 )
@@ -17,6 +19,95 @@ func key(b byte) [20]byte {
 	var k [20]byte
 	k[0] = b
 	return k
+}
+
+// TestBuildMediaURLRejectsForgedSubdomain is the regression test for the SSRF in
+// the media proxy: subdomain reaches us percent-decoded from the request path,
+// so it can carry "@", "#", "?" and "/" — every character that ends a host. When
+// the URL was built by concatenation, each of these reparsed as a host the
+// caller chose. The label is the host, so it has to be rejected, not escaped.
+func TestBuildMediaURLRejectsForgedSubdomain(t *testing.T) {
+	// The path a request for /media/file/<subdomain>/f.jpg would decode to.
+	for _, subdomain := range []string{
+		"x@attacker.example#",     // userinfo + fragment: host is attacker.example
+		"x@attacker.example/",     // userinfo, host terminated by the slash
+		"x@127.0.0.1:8080/",       // the same, aimed inside the instance's network
+		"x@[::1]:8080/",           // IPv6 loopback
+		"attacker.example#",       // fragment alone truncates to images-wixmp-attacker.example
+		"attacker.example?",       // query does the same
+		"a/../../secret",          // slashes escape the label entirely
+		"a\\attacker.example",     // backslash, which some parsers fold to "/"
+		"a.wixmp.com.attacker.eu", // dots: a label may not contain them
+		"",                        // empty label
+	} {
+		if got, ok := buildMediaURL(subdomain, "f/x.jpg", ""); ok {
+			t.Errorf("subdomain %q: accepted and built %q, want rejected", subdomain, got)
+		}
+	}
+}
+
+// TestBuildMediaURLKeepsHostOnWixmp is the property that actually matters: for
+// anything accepted, the host the client ends up talking to is the CDN.
+func TestBuildMediaURLKeepsHostOnWixmp(t *testing.T) {
+	got, ok := buildMediaURL("ed30a86b-8c4c-a887", "f/x.jpg", "abc")
+	if !ok {
+		t.Fatal("a plain hex-and-dash label was rejected, want accepted")
+	}
+
+	u, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("built an unparseable URL %q: %v", got, err)
+	}
+	if u.Host != "images-wixmp-ed30a86b-8c4c-a887.wixmp.com" {
+		t.Errorf("host is %q, want the wixmp CDN", u.Host)
+	}
+	if u.User != nil {
+		t.Errorf("URL carries userinfo %v, want none", u.User)
+	}
+	if u.Query().Get("token") != "abc" {
+		t.Errorf("token is %q, want abc", u.Query().Get("token"))
+	}
+}
+
+// TestBuildMediaURLEscapesPath checks that the path cannot end the URL early and
+// smuggle in a query or fragment of the caller's choosing.
+func TestBuildMediaURLEscapesPath(t *testing.T) {
+	got, ok := buildMediaURL("ed30a86b", "f/x.jpg#frag?q=1", "")
+	if !ok {
+		t.Fatal("a plain label was rejected, want accepted")
+	}
+
+	u, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("built an unparseable URL %q: %v", got, err)
+	}
+	if u.Fragment != "" {
+		t.Errorf("path opened a fragment %q, want it escaped into the path", u.Fragment)
+	}
+	if u.RawQuery != "" {
+		t.Errorf("path opened a query %q, want it escaped into the path", u.RawQuery)
+	}
+	if u.Path != "/f/x.jpg#frag?q=1" {
+		t.Errorf("path is %q, want it preserved verbatim", u.Path)
+	}
+}
+
+// TestDownloadAndSendMediaRejectsForgedSubdomain drives the handler itself, to
+// pin down that a forged label is refused before any fetch is attempted rather
+// than merely being rejected by the helper. Proxying is enabled here, so the
+// pre-fix handler would have reached the network on this input.
+func TestDownloadAndSendMediaRejectsForgedSubdomain(t *testing.T) {
+	proxy := CFG.Proxy
+	CFG.Proxy = true
+	defer func() { CFG.Proxy = proxy }()
+
+	w := httptest.NewRecorder()
+	s := skunkyart{Writer: w, Host: "http://localhost", Args: url.Values{}}
+	s.DownloadAndSendMedia("x@127.0.0.1:8080/", "f/x.jpg")
+
+	if w.Code != 400 {
+		t.Errorf("status is %d, want 400 for a forged subdomain", w.Code)
+	}
 }
 
 // TestMemCacheConcurrentAccess hammers the in-memory cache from many goroutines

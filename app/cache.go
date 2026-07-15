@@ -6,7 +6,9 @@ import (
 	"crypto/sha1" //nolint:gosec // G505: SHA-1 is a cache-key hash here, not a security primitive
 	"encoding/hex"
 	"io"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -81,18 +83,48 @@ func ageMemCache() {
 	}
 }
 
+// mediaSubdomain matches the one hostname label wixmp media URLs vary: a hex
+// string, sometimes with dashes. Anything outside that set is rejected rather
+// than escaped, because this label is what selects the host to fetch from.
+var mediaSubdomain = regexp.MustCompile(`^[a-zA-Z0-9-]+$`)
+
+// buildMediaURL returns the wixmp CDN URL for one media item, reporting false
+// when subdomain is not a bare hostname label.
+//
+// subdomain and path arrive already percent-decoded from the request path, so
+// they can carry the characters that end a host. Concatenated into a URL string,
+// a subdomain of "x@attacker.example#" reparses as host attacker.example, with
+// "images-wixmp-x" demoted to userinfo and the intended host to a fragment —
+// pointing the fetch at whatever the caller names, including addresses reachable
+// only from the instance itself.
+func buildMediaURL(subdomain, path, token string) (string, bool) {
+	if !mediaSubdomain.MatchString(subdomain) {
+		return "", false
+	}
+
+	// Fields rather than concatenation: String escapes the path, so a decoded
+	// "#" or "?" in it stays part of the path instead of ending it. The host is
+	// checked above rather than escaped, because url.URL passes it through
+	// verbatim.
+	u := url.URL{
+		Scheme: "https",
+		Host:   "images-wixmp-" + subdomain + ".wixmp.com",
+		Path:   "/" + path,
+	}
+	if token != "" {
+		u.RawQuery = url.Values{"token": {token}}.Encode()
+	}
+	return u.String(), true
+}
+
 // DownloadAndSendMedia proxies one image from DeviantArt's wixmp CDN to the
 // client, serving it from the on-disk or in-memory cache when enabled. It
 // responds 403 when proxying is turned off for this instance.
 func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
-	var url strings.Builder
-	url.WriteString("https://images-wixmp-")
-	url.WriteString(subdomain)
-	url.WriteString(".wixmp.com/")
-	url.WriteString(path)
-	if t := s.Args.Get("token"); t != "" {
-		url.WriteString("?token=")
-		url.WriteString(t)
+	mediaURL, ok := buildMediaURL(subdomain, path, s.Args.Get("token"))
+	if !ok {
+		s.ReturnHTTPError(400)
+		return
 	}
 
 	var response []byte
@@ -109,7 +141,7 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 			}
 		}
 
-		body, ok := s.loadOrFetchMedia(filePath, url.String())
+		body, ok := s.loadOrFetchMedia(filePath, mediaURL)
 		if !ok {
 			// loadOrFetchMedia has already written the error response.
 			return
@@ -120,7 +152,7 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 			memPut(key, response)
 		}
 	case CFG.Proxy:
-		dwnld := Download(url.String())
+		dwnld := Download(mediaURL)
 		if dwnld.Status != 200 {
 			s.ReturnHTTPError(dwnld.Status)
 			return
@@ -135,10 +167,10 @@ func (s skunkyart) DownloadAndSendMedia(subdomain, path string) {
 }
 
 // loadOrFetchMedia returns the media body for filePath, preferring the on-disk
-// cache and falling back to fetching url, which it then writes back to the
+// cache and falling back to fetching mediaURL, which it then writes back to the
 // cache. It reports false when it has already written an error response, so the
 // caller must not write anything further.
-func (s skunkyart) loadOrFetchMedia(filePath, url string) ([]byte, bool) {
+func (s skunkyart) loadOrFetchMedia(filePath, mediaURL string) ([]byte, bool) {
 	// filePath is built from a SHA-1 of the request, not from user input, so it
 	// cannot escape the cache directory.
 	if f, err := os.Open(filePath); err == nil { //nolint:gosec // G304: path is a hash, not user-controlled
@@ -152,7 +184,7 @@ func (s skunkyart) loadOrFetchMedia(filePath, url string) ([]byte, bool) {
 		}
 	}
 
-	dwnld := Download(url)
+	dwnld := Download(mediaURL)
 	if dwnld.Status != 200 || !strings.HasPrefix(dwnld.Headers.Get("Content-Type"), "image") {
 		s.ReturnHTTPError(dwnld.Status)
 		return nil, false
